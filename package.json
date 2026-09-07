@@ -47,5 +47,10 @@
     "eslint-config-next": "15.5.23",
     "postcss": "^8.5.15",
     "typescript": "5.9.3"
+  },
+  "allowScripts": {
+    "core-js@3.50.0": true,
+    "sharp@0.34.5": true,
+    "unrs-resolver@1.12.2": true
   }
 }

@@ -42,6 +42,7 @@ import type { PaymentMethod, Product } from '@/types';
 import { trackInitiateCheckout, trackPurchase, trackPageView } from '@/lib/facebookPixel';
 import { SITE } from '@/config/siteConfig';
 import { BRAND } from '@/config/brandingConfig';
+import { CHECKOUT_TRANSLATIONS, type CheckoutLang } from '@/config/checkoutTranslations';
 
 // TODO: বাস্তব বিকাশ/নগদ মার্চেন্ট নম্বর দিয়ে replace করুন
 const MOBILE_BANKING_MERCHANT_NUMBER = '01700000000';
@@ -52,6 +53,15 @@ interface BuyNowState {
   color: string;
   quantity: number;
 }
+
+/* ─── Language state store (per-page, persisted to localStorage) ─── */
+const LANG_STORAGE_KEY = 'checkout-lang';
+
+const getInitialLang = (): CheckoutLang => {
+  if (typeof window === 'undefined') return 'en';
+  const saved = window.localStorage.getItem(LANG_STORAGE_KEY);
+  return saved === 'bn' || saved === 'en' ? saved : 'en';
+};
 
 /* ─── ১. ঢাকা মেট্রোপলিটন থানা (ঢাকার ভেতরের এলাকা - চার্জ ৳৮০) ─── */
 const DHAKA_METRO_THANAS = [
@@ -264,6 +274,26 @@ export const CheckoutPage: React.FC = () => {
     notes: '',
   });
 
+  // Language State (EN / বাংলা)
+  const [lang, setLang] = useState<CheckoutLang>(getInitialLang);
+  const t = CHECKOUT_TRANSLATIONS[lang];
+
+  useEffect(() => {
+    window.localStorage.setItem(LANG_STORAGE_KEY, lang);
+  }, [lang]);
+
+  const switchLang = (next: CheckoutLang) => {
+    setLang(next);
+    // Re-render any currently-shown validation/coupon messages in the new language
+    setErrors((prev) => {
+      if (!Object.values(prev).some(Boolean)) return prev;
+      return Object.fromEntries(
+        Object.entries(prev).map(([field, msg]) => [field, msg ? ' ' : '']),
+      ) as Record<string, string>;
+    });
+    if (couponError && !couponApplied) setCouponError(' ');
+  };
+
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
   const [mobileBankingNumber, setMobileBankingNumber] = useState('');
   const [transactionId, setTransactionId] = useState('');
@@ -309,7 +339,7 @@ export const CheckoutPage: React.FC = () => {
   }, [form.district, form.thana]);
 
   const shippingCharge = isInsideDhaka ? 80 : 150;
-  const deliveryZoneLabel = isInsideDhaka ? 'Inside Dhaka (ঢাকার ভেতরে)' : 'Outside Dhaka (ঢাকার বাইরে)';
+  const deliveryZoneLabel = isInsideDhaka ? t.zoneInside : t.zoneOutside;
 
   const discount = buyNow ? 0 : cartCouponOverridden ? 0 : getDiscount();
   const total = Math.max(0, subtotal - discount - couponDiscount + shippingCharge);
@@ -339,41 +369,41 @@ export const CheckoutPage: React.FC = () => {
     const newErrors: Record<string, string> = {};
 
     if (!form.fullName.trim()) {
-      newErrors.fullName = 'আপনার সম্পূর্ণ নাম লিখুন';
+      newErrors.fullName = t.errName;
     }
 
     const cleanPhone = form.phone.replace(/[^0-9]/g, '');
     if (!cleanPhone) {
-      newErrors.phone = 'আপনার ১১ ডিজিটের মোবাইল নম্বর দিন';
+      newErrors.phone = t.errPhoneEmpty;
     } else if (!isValidBdPhone(cleanPhone)) {
-      newErrors.phone = 'সঠিক ১১ ডিজিটের নম্বর দিন (যেমন: 017XXXXXXXX)';
+      newErrors.phone = t.errPhoneInvalid;
     }
 
     if (!form.district) {
-      newErrors.district = 'অনুগ্রহ করে জেলা সিলেক্ট করুন';
+      newErrors.district = t.errDistrict;
     }
 
     if (form.district.startsWith('Dhaka') && !form.thana) {
-      newErrors.thana = 'অনুগ্রহ করে আপনার থানা/এলাকা সিলেক্ট করুন';
+      newErrors.thana = t.errThana;
     } else if (!form.district.startsWith('Dhaka') && !form.customThana.trim()) {
-      newErrors.customThana = 'আপনার থানা বা উপজেলার নাম লিখুন';
+      newErrors.customThana = t.errCustomThana;
     }
 
     if (!form.streetAddress.trim()) {
-      newErrors.streetAddress = 'বাসা নং, রোড নং বা বিস্তারিত ঠিকানা লিখুন';
+      newErrors.streetAddress = t.errStreet;
     }
 
     if (paymentMethod !== 'cod') {
       const cleanMB = mobileBankingNumber.replace(/[^0-9]/g, '');
       if (!cleanMB) {
-        newErrors.mobileBankingNumber = 'আপনার বিকাশ/নগদ নম্বর লিখুন';
+        newErrors.mobileBankingNumber = t.errMbEmpty;
       } else if (!isValidBdPhone(cleanMB)) {
-        newErrors.mobileBankingNumber = 'সঠিক ১১ ডিজিটের নম্বর দিন';
+        newErrors.mobileBankingNumber = t.errMbInvalid;
       }
       if (!transactionId.trim()) {
-        newErrors.transactionId = 'Transaction ID (TrxID) লিখুন';
+        newErrors.transactionId = t.errTrxEmpty;
       } else if (transactionId.trim().length < 6) {
-        newErrors.transactionId = 'সঠিক Transaction ID লিখুন';
+        newErrors.transactionId = t.errTrxInvalid;
       }
     }
 
@@ -412,26 +442,26 @@ export const CheckoutPage: React.FC = () => {
     const code = couponInput.trim();
 
     if (!code) {
-      setCouponError('কুপন কোড লিখুন');
+      setCouponError(t.errCouponEmpty);
       return;
     }
 
     const coupon = coupons.find((c) => c.code.toLowerCase() === code.toLowerCase() && c.isActive);
 
     if (!coupon) {
-      setCouponError('কুপন কোডটি সঠিক নয়');
+      setCouponError(t.errCouponInvalid);
       return;
     }
     if (new Date(coupon.expiresAt) < new Date()) {
-      setCouponError('এই কুপনের মেয়াদ শেষ হয়ে গেছে');
+      setCouponError(t.errCouponExpired);
       return;
     }
     if (coupon.usedCount >= coupon.maxUses) {
-      setCouponError('কুপন ব্যবহারের লিমিট শেষ');
+      setCouponError(t.errCouponLimit);
       return;
     }
     if (subtotal < coupon.minOrderAmount) {
-      setCouponError(`সর্বনিম্ন অর্ডার ${SITE.currency.symbol}${coupon.minOrderAmount} হতে হবে`);
+      setCouponError(t.errCouponMinOrder(`${SITE.currency.symbol}${coupon.minOrderAmount}`));
       return;
     }
 
@@ -577,7 +607,7 @@ export const CheckoutPage: React.FC = () => {
       if (!buyNow) clearCart();
     } catch (err) {
       console.error('Order failed', err);
-      alert('অর্ডার সম্পন্ন হতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।');
+      alert(t.orderFailAlert);
     } finally {
       setPlacing(false);
     }
@@ -605,26 +635,26 @@ export const CheckoutPage: React.FC = () => {
             <CheckCircle size={48} />
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1">ধন্যবাদ! আপনার অর্ডার সম্পন্ন হয়েছে</h1>
-          <p className="text-sm text-gray-500 mb-5">আমাদের প্রতিনিধি খুব দ্রুত আপনার সাথে কল করে অর্ডার কনফার্ম করবে।</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1">{t.successTitle}</h1>
+          <p className="text-sm text-gray-500 mb-5">{t.successSubtitle}</p>
 
           <div className="bg-[#FAF6F3] rounded-2xl p-4 mb-6 text-left border border-gray-100 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Order Number:</span>
+              <span className="text-gray-500">{t.orderNumberLabel}</span>
               <span className="font-bold text-gray-800 font-mono">{orderNumber}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Payment Method:</span>
+              <span className="text-gray-500">{t.paymentMethodLabel}</span>
               <span className="font-semibold text-emerald-700">
                 {paymentMethod === 'cod'
-                  ? 'Cash on Delivery (ক্যাশ অন ডেলিভারি)'
+                  ? t.codName
                   : paymentMethod === 'bkash'
-                    ? 'bKash Payment (বিকাশ)'
-                    : 'Nagad Payment (নগদ)'}
+                    ? t.bkashPayment
+                    : t.nagadPayment}
               </span>
             </div>
             <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
-              <span className="font-bold text-gray-800">Total Payable:</span>
+              <span className="font-bold text-gray-800">{t.totalPayableLabel}</span>
               <span className="font-bold text-lg text-[#B07D6B]">{SITE.currency.symbol}{total.toFixed(0)}</span>
             </div>
           </div>
@@ -632,9 +662,7 @@ export const CheckoutPage: React.FC = () => {
           <div className="p-3 bg-amber-50 rounded-xl text-amber-800 text-xs sm:text-sm mb-6 flex items-center justify-center gap-2">
             <ShieldCheck size={18} className="shrink-0" />
             <span>
-              {paymentMethod === 'cod'
-                ? 'ডেলিভারি পাওয়ার পর পণ্য দেখে মূল্য পরিশোধ করুন।'
-                : 'আপনার পেমেন্ট যাচাই করে আমরা দ্রুত অর্ডার প্রসেস করছি।'}
+              {paymentMethod === 'cod' ? t.codTrustNote : t.mbVerifyNote}
             </span>
           </div>
 
@@ -643,7 +671,7 @@ export const CheckoutPage: React.FC = () => {
             className="w-full py-3.5 rounded-2xl font-bold text-white shadow-md transition-transform active:scale-98 cursor-pointer"
             style={{ background: 'linear-gradient(135deg, #B07D6B, #C4956A)' }}
           >
-            আরও শপিং করুন (Continue Shopping)
+            {t.continueShopping}
           </button>
         </motion.div>
       </div>
@@ -666,9 +694,27 @@ export const CheckoutPage: React.FC = () => {
           >
             <ArrowLeft size={18} />
           </button>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">অর্ডার সম্পন্ন করুন (Checkout)</h1>
-            <p className="text-xs text-gray-500">তথ্যগুলো পূরণ করে অর্ডার কনফার্ম করুন</p>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{t.headerTitle}</h1>
+            <p className="text-xs text-gray-500">{t.headerSubtitle}</p>
+          </div>
+
+          {/* Language toggle (English / বাংলা) */}
+          <div className="flex items-center bg-white border border-gray-200 rounded-full p-1 shrink-0">
+            {(['en', 'bn'] as const).map((code) => (
+              <button
+                key={code}
+                type="button"
+                onClick={() => switchLang(code)}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${lang === code
+                  ? 'text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                style={lang === code ? { background: '#B07D6B' } : undefined}
+              >
+                {code === 'en' ? 'English' : 'বাংলা'}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -677,7 +723,7 @@ export const CheckoutPage: React.FC = () => {
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-bold uppercase tracking-wider text-[#B07D6B] flex items-center gap-1.5">
-                <Package size={14} /> আপনার অর্ডার ({checkoutItems.length} টি আইটেম)
+                <Package size={14} /> {t.yourOrder(checkoutItems.length)}
               </span>
             </div>
 
@@ -699,8 +745,8 @@ export const CheckoutPage: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-800 truncate">{item.product.name}</p>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      {item.selectedSize && `Size: ${item.selectedSize}`}
-                      {item.selectedColor && ` • Color: ${item.selectedColor}`} • Qty: {item.quantity}
+                      {item.selectedSize && `${t.size}: ${item.selectedSize}`}
+                      {item.selectedColor && ` • ${t.color}: ${item.selectedColor}`} • {t.qty}: {item.quantity}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
@@ -719,19 +765,19 @@ export const CheckoutPage: React.FC = () => {
           <div className="space-y-4">
             <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
               <MapPin size={18} className="text-[#B07D6B]" />
-              ডেলিভারি ঠিকানা ও তথ্য (Delivery Details)
+              {t.deliveryDetailsHeading}
             </h2>
 
             {/* Name */}
             <div ref={nameRef}>
-              <Field label="Full Name" banglaLabel="আপনার পুরো নাম" required error={errors.fullName}>
+              <Field label={t.labelFullName} required error={errors.fullName}>
                 <div className="relative">
                   <User size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
                     value={form.fullName}
                     onChange={(e) => updateForm('fullName', e.target.value)}
-                    placeholder="আপনার নাম লিখুন"
+                    placeholder={t.namePlaceholder}
                     className={`w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all ${errors.fullName
                       ? 'border-red-400 bg-red-50/20'
                       : 'border-gray-200 bg-gray-50/60 focus:bg-white focus:border-[#B07D6B]'
@@ -744,11 +790,10 @@ export const CheckoutPage: React.FC = () => {
             {/* Mobile Number */}
             <div ref={phoneRef}>
               <Field
-                label="Mobile Number"
-                banglaLabel="১১ ডিজিটের মোবাইল নম্বর"
+                label={t.labelPhone}
                 required
                 error={errors.phone}
-                hint="সঠিক মোবাইল নম্বর দিন"
+                hint={t.phoneHint}
               >
                 <div className="relative">
                   <Phone size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -771,7 +816,7 @@ export const CheckoutPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* জেলা সিলেক্টর */}
               <div ref={districtRef}>
-                <Field label="District" banglaLabel="জেলা" required error={errors.district}>
+                <Field label={t.labelDistrict} required error={errors.district}>
                   <div className="relative">
                     <Building2 size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <select
@@ -800,7 +845,7 @@ export const CheckoutPage: React.FC = () => {
               {/* থানা সিলেক্টর (ঢাকার ক্ষেত্রে ড্রপডাউন, বাইরের ক্ষেত্রে ইনপুট/থানা) */}
               <div ref={thanaRef}>
                 {form.district.startsWith('Dhaka') ? (
-                  <Field label="Thana / Area" banglaLabel="থানা বা এরিয়া" required error={errors.thana}>
+                  <Field label={t.labelThanaArea} required error={errors.thana}>
                     <div className="relative">
                       <Navigation size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                       <select
@@ -811,15 +856,15 @@ export const CheckoutPage: React.FC = () => {
                           : 'border-gray-200 bg-gray-50/60 focus:bg-white focus:border-[#B07D6B]'
                           }`}
                       >
-                        <option value="">-- থানা/এলাকা সিলেক্ট করুন --</option>
-                        <optgroup label="📍 Dhaka City (ঢাকার ভেতরে - চার্জ ৳৮০)">
+                        <option value="">{t.thanaSelectDefault}</option>
+                        <optgroup label={t.dhakaCityGroup}>
                           {DHAKA_METRO_THANAS.map((th) => (
                             <option key={th} value={th}>
                               {th}
                             </option>
                           ))}
                         </optgroup>
-                        <optgroup label="📍 Sub-Dhaka (ঢাকার বাইরে - চার্জ ৳১৫০)">
+                        <optgroup label={t.subDhakaGroup}>
                           {DHAKA_SUB_THANAS.map((th) => (
                             <option key={th} value={th}>
                               {th}
@@ -830,14 +875,14 @@ export const CheckoutPage: React.FC = () => {
                     </div>
                   </Field>
                 ) : (
-                  <Field label="Thana / Upazila" banglaLabel="থানা / উপজেলা" required error={errors.customThana}>
+                  <Field label={t.labelThanaUpazila} required error={errors.customThana}>
                     <div className="relative">
                       <Navigation size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input
                         type="text"
                         value={form.customThana}
                         onChange={(e) => updateForm('customThana', e.target.value)}
-                        placeholder="যেমন: কোতোয়ালী, বায়েজিদ, সদর..."
+                        placeholder={t.customThanaPlaceholder}
                         className={`w-full pl-10 pr-4 py-3 rounded-xl text-sm border outline-none font-medium ${errors.customThana
                           ? 'border-red-400 bg-red-50/20'
                           : 'border-gray-200 bg-gray-50/60 focus:bg-white focus:border-[#B07D6B]'
@@ -858,27 +903,26 @@ export const CheckoutPage: React.FC = () => {
             >
               <span className="flex items-center gap-1.5 font-medium">
                 <Truck size={15} className="text-emerald-600" />
-                ডেলিভারি এরিয়া: <strong>{deliveryZoneLabel}</strong>
+                {t.deliveryAreaLabel} <strong>{deliveryZoneLabel}</strong>
               </span>
               <span className="font-bold text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded-md">
-                চার্জ: ৳{shippingCharge}
+                {t.chargeLabel} ৳{shippingCharge}
               </span>
             </motion.div>
 
             {/* Street / House Address */}
             <div ref={streetRef}>
               <Field
-                label="House & Street Address"
-                banglaLabel="বাসা নং, রোড নং বা গ্রামের নাম"
+                label={t.labelStreetAddress}
                 required
                 error={errors.streetAddress}
-                hint="বিস্তারিত ঠিকানা লিখুন"
+                hint={t.streetHint}
               >
                 <textarea
                   rows={2}
                   value={form.streetAddress}
                   onChange={(e) => updateForm('streetAddress', e.target.value)}
-                  placeholder="যেমন: বাসা নং ১২, রোড নং ৪, সেক্টর ৭ অথবা মহল্লা/গ্রামের নাম..."
+                  placeholder={t.streetPlaceholder}
                   className={`w-full px-4 py-3 rounded-xl text-sm outline-none transition-all resize-none ${errors.streetAddress
                     ? 'border-red-400 bg-red-50/20'
                     : 'border-gray-200 bg-gray-50/60 focus:bg-white focus:border-[#B07D6B]'
@@ -888,12 +932,12 @@ export const CheckoutPage: React.FC = () => {
             </div>
 
             {/* Special Instructions */}
-            <Field label="Special Note" banglaLabel="কোনো বিশেষ নির্দেশনা থাকলে লিখুন" hint="optional">
+            <Field label={t.labelSpecialNote} hint={t.optionalHint}>
               <input
                 type="text"
                 value={form.notes}
                 onChange={(e) => updateForm('notes', e.target.value)}
-                placeholder="যেমন: ৩টার পর ডেলিভারি দিলে ভালো হয়..."
+                placeholder={t.notesPlaceholder}
                 className="w-full px-4 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50/60 focus:bg-white focus:border-[#B07D6B] outline-none"
               />
             </Field>
@@ -903,7 +947,7 @@ export const CheckoutPage: React.FC = () => {
 
           {/* 3. PAYMENT METHOD */}
           <div className="space-y-3" ref={paymentRef}>
-            <h2 className="text-base font-bold text-gray-800">পেমেন্ট মেথড বেছে নিন (Select Payment Method)</h2>
+            <h2 className="text-base font-bold text-gray-800">{t.paymentHeading}</h2>
 
             {/* Cash on Delivery */}
             <div
@@ -921,9 +965,9 @@ export const CheckoutPage: React.FC = () => {
                 <div>
                   <p className="font-bold text-sm text-gray-900 flex items-center gap-1.5">
                     <Truck size={16} className="text-[#B07D6B]" />
-                    Cash on Delivery (ক্যাশ অন ডেলিভারি)
+                    {t.codName}
                   </p>
-                  <p className="text-xs text-gray-600 mt-0.5">পণ্য হাতে পেয়ে টাকা পরিশোধ করবেন।</p>
+                  <p className="text-xs text-gray-600 mt-0.5">{t.codDesc}</p>
                 </div>
               </div>
             </div>
@@ -950,13 +994,13 @@ export const CheckoutPage: React.FC = () => {
                   <div>
                     <p className="font-bold text-sm text-gray-900 flex items-center gap-1.5">
                       <Smartphone size={16} className="text-[#E2136E]" />
-                      bKash / Nagad Payment (বিকাশ/নগদ)
+                      {t.bkashNagadName}
                     </p>
-                    <p className="text-xs text-gray-600 mt-0.5">বিকাশে সরাসরি পেমেন্ট করুন</p>
+                    <p className="text-xs text-gray-600 mt-0.5">{t.bkashNagadDesc}</p>
                   </div>
                 </div>
                 <span className="hidden sm:inline-flex items-center gap-1 text-[10px] bg-[#E2136E] text-white font-bold px-2 py-1 rounded-full">
-                  <Zap size={10} /> দ্রুত ডেলিভারি
+                  <Zap size={10} /> {t.fastDeliveryBadge}
                 </span>
               </div>
 
@@ -982,15 +1026,14 @@ export const CheckoutPage: React.FC = () => {
                               : 'border-gray-200 text-gray-600 bg-white'
                             }`}
                         >
-                          {m === 'bkash' ? 'bKash (বিকাশ)' : 'Nagad (নগদ)'}
+                          {m === 'bkash' ? t.bkashName : t.nagadName}
                         </button>
                       ))}
                     </div>
 
                     <div className="p-3.5 rounded-xl bg-white border border-gray-200 space-y-2.5 text-xs">
                       <p className="text-gray-700">
-                        <span className="font-bold">১.</span> আপনার {paymentMethod === 'bkash' ? 'বিকাশ' : 'নগদ'} অ্যাপ থেকে{' '}
-                        <span className="font-bold text-gray-900">Send Money / Payment</span> অপশনে যান।
+                        {t.paymentStep1(paymentMethod === 'bkash' ? t.bkashName : t.nagadName)}
                       </p>
 
                       <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2.5 border border-gray-100">
@@ -1003,19 +1046,18 @@ export const CheckoutPage: React.FC = () => {
                           className="flex items-center gap-1 text-[11px] font-semibold text-[#B07D6B] hover:opacity-80 cursor-pointer"
                         >
                           <Copy size={13} />
-                          {numberCopied ? 'Copied!' : 'Copy'}
+                          {numberCopied ? t.copied : t.copy}
                         </button>
                       </div>
 
                       <p className="text-gray-700">
-                        <span className="font-bold">২.</span> সর্বমোট{' '}
-                        <span className="font-bold text-gray-900">৳{total.toFixed(0)}</span> টাকা পেমেন্ট সম্পন্ন করুন।
+                        {t.paymentStep2(`${SITE.currency.symbol}${total.toFixed(0)}`)}
                       </p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Field
-                        label={paymentMethod === 'bkash' ? 'আপনার বিকাশ নম্বর' : 'আপনার নগদ নম্বর'}
+                        label={t.labelMbNumber(paymentMethod === 'bkash' ? t.bkashName : t.nagadName)}
                         required
                         error={errors.mobileBankingNumber}
                       >
@@ -1035,7 +1077,7 @@ export const CheckoutPage: React.FC = () => {
                         />
                       </Field>
 
-                      <Field label="Transaction ID (TrxID)" required error={errors.transactionId}>
+                      <Field label={t.labelTrxId} required error={errors.transactionId}>
                         <input
                           type="text"
                           value={transactionId}
@@ -1043,7 +1085,7 @@ export const CheckoutPage: React.FC = () => {
                             setTransactionId(e.target.value.toUpperCase());
                             if (errors.transactionId) setErrors((p) => ({ ...p, transactionId: '' }));
                           }}
-                          placeholder="যেমন: 9J7A..."
+                          placeholder={t.trxPlaceholder}
                           className={`w-full px-3.5 py-2.5 rounded-xl text-sm border outline-none font-medium uppercase ${errors.transactionId
                               ? 'border-red-400 bg-red-50/20'
                               : 'border-gray-200 bg-gray-50/60 focus:bg-white focus:border-[#B07D6B]'
@@ -1063,7 +1105,7 @@ export const CheckoutPage: React.FC = () => {
           <div>
             <label className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2 flex items-center gap-1">
               <Tag size={12} className="text-[#B07D6B]" />
-              ডিসকাউন্ট কুপন (Coupon Code)
+              {t.couponHeading}
             </label>
             <div className="flex gap-2">
               <input
@@ -1078,7 +1120,7 @@ export const CheckoutPage: React.FC = () => {
                     setCartCouponOverridden(false);
                   }
                 }}
-                placeholder="কুপন কোড থাকলে লিখুন"
+                placeholder={t.couponPlaceholder}
                 className="flex-1 px-4 py-2.5 rounded-xl text-sm border border-gray-200 uppercase outline-none focus:border-[#B07D6B]"
               />
               <button
@@ -1087,13 +1129,13 @@ export const CheckoutPage: React.FC = () => {
                 className="px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-opacity active:scale-95 cursor-pointer"
                 style={{ background: '#B07D6B' }}
               >
-                {couponApplied ? 'Applied' : 'Apply'}
+                {couponApplied ? t.applied : t.apply}
               </button>
             </div>
             {couponError && <p className="text-xs text-red-600 font-medium mt-1">{couponError}</p>}
             {couponApplied && (
               <p className="text-xs text-emerald-600 font-semibold mt-1 flex items-center gap-1">
-                <Check size={14} /> আপনি পাচ্ছেন {SITE.currency.symbol}{couponDiscount} ডিসকাউন্ট!
+                <Check size={14} /> {t.couponSuccess(`${SITE.currency.symbol}${couponDiscount}`)}
               </p>
             )}
           </div>
@@ -1103,24 +1145,24 @@ export const CheckoutPage: React.FC = () => {
           {/* 5. PRICE BREAKDOWN */}
           <div className="bg-[#FAF6F3] rounded-2xl p-4 space-y-2 text-sm border border-gray-100">
             <div className="flex justify-between text-gray-600">
-              <span>মোট মূল্য (Subtotal):</span>
+              <span>{t.subtotalLabel}</span>
               <span className="font-semibold text-gray-800">{SITE.currency.symbol}{subtotal.toFixed(0)}</span>
             </div>
 
             {(discount > 0 || couponDiscount > 0) && (
               <div className="flex justify-between text-emerald-600 font-semibold">
-                <span>ডিসকাউন্ট (Discount):</span>
+                <span>{t.discountLabel}</span>
                 <span>−{SITE.currency.symbol}{(discount + couponDiscount).toFixed(0)}</span>
               </div>
             )}
 
             <div className="flex justify-between text-gray-600">
-              <span>ডেলিভারি চার্জ ({deliveryZoneLabel}):</span>
+              <span>{t.deliveryChargeLabel(deliveryZoneLabel)}</span>
               <span className="font-semibold text-gray-800">{SITE.currency.symbol}{shippingCharge}</span>
             </div>
 
             <div className="flex justify-between items-center pt-2 border-t border-gray-200/80">
-              <span className="font-bold text-gray-900 text-base">সর্বমোট বিল (Total):</span>
+              <span className="font-bold text-gray-900 text-base">{t.totalLabel}</span>
               <span className="text-2xl font-black text-[#B07D6B]">{SITE.currency.symbol}{total.toFixed(0)}</span>
             </div>
           </div>
@@ -1136,10 +1178,10 @@ export const CheckoutPage: React.FC = () => {
                 background: 'linear-gradient(135deg, #B07D6B 0%, #C4956A 100%)',
               }}
             >
-              অর্ডার কনফার্ম করতে ক্লিক করুন ({SITE.currency.symbol}{total.toFixed(0)}) →
+              {t.submitButton(`${SITE.currency.symbol}${total.toFixed(0)}`)}
             </motion.button>
             <p className="text-[11px] text-center text-gray-400 mt-2 flex items-center justify-center gap-1">
-              <Shield size={12} /> ১০০% নিরাপদ পেমেন্ট সুবিধা
+              <Shield size={12} /> {t.safetyNote}
             </p>
           </div>
         </div>
@@ -1157,7 +1199,7 @@ export const CheckoutPage: React.FC = () => {
             >
               {/* Header */}
               <div className="flex items-center justify-between p-4 px-6 border-b border-gray-100 bg-[#FAF6F3]">
-                <h3 className="font-bold text-gray-900 text-base">অর্ডার নিশ্চিতকরণ (Confirm Order)</h3>
+                <h3 className="font-bold text-gray-900 text-base">{t.reviewTitle}</h3>
                 <button
                   onClick={() => setShowReview(false)}
                   className="p-1 rounded-full text-gray-400 hover:text-gray-700 cursor-pointer"
@@ -1175,19 +1217,19 @@ export const CheckoutPage: React.FC = () => {
                     {form.streetAddress}, {form.district.startsWith('Dhaka') ? form.thana : form.customThana}, {form.district}
                   </p>
                   <p className="text-[#B07D6B] font-semibold pt-1">
-                    {deliveryZoneLabel} — চার্জ: ৳{shippingCharge}
+                    {deliveryZoneLabel} — {t.chargeLabel} ৳{shippingCharge}
                   </p>
                   <p className="text-gray-600 pt-1 mt-1 border-t border-gray-100">
-                    পেমেন্ট:{' '}
+                    {t.paymentLabel}{' '}
                     <span className="font-bold text-gray-900">
-                      {paymentMethod === 'cod' ? 'Cash on Delivery' : paymentMethod === 'bkash' ? 'bKash' : 'Nagad'}
+                      {paymentMethod === 'cod' ? t.codName : paymentMethod === 'bkash' ? t.bkashName : t.nagadName}
                     </span>
                     {paymentMethod !== 'cod' && ` • TrxID: ${transactionId}`}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">আইটেম লিস্ট:</p>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t.itemListLabel}</p>
                   {checkoutItems.map((item) => (
                     <div key={item.product.id} className="flex justify-between items-center text-xs">
                       <span className="text-gray-800 truncate pr-2 font-medium">
@@ -1199,11 +1241,11 @@ export const CheckoutPage: React.FC = () => {
                     </div>
                   ))}
                   <div className="flex justify-between items-center text-xs pt-1 border-t border-gray-100">
-                    <span className="text-gray-500">ডেলিভারি চার্জ:</span>
+                    <span className="text-gray-500">{t.deliveryChargeRow}</span>
                     <span className="font-semibold text-gray-800">{SITE.currency.symbol}{shippingCharge}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm font-bold pt-2 border-t border-gray-200">
-                    <span>সর্বমোট বিল:</span>
+                    <span>{t.totalRow}</span>
                     <span className="text-lg text-[#B07D6B] font-black">{SITE.currency.symbol}{total.toFixed(0)}</span>
                   </div>
                 </div>
@@ -1215,7 +1257,7 @@ export const CheckoutPage: React.FC = () => {
                     onClick={() => setShowReview(false)}
                     className="w-1/3 py-3 rounded-2xl font-bold text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer"
                   >
-                    এডিট করুন
+                    {t.editButton}
                   </button>
                   <button
                     type="button"
@@ -1226,7 +1268,7 @@ export const CheckoutPage: React.FC = () => {
                       background: placing ? '#ccc' : 'linear-gradient(135deg, #B07D6B, #C4956A)',
                     }}
                   >
-                    {placing ? 'অর্ডার হচ্ছে...' : 'অর্ডার কনফার্ম করুন'}
+                    {placing ? t.placing : t.confirmButton}
                   </button>
                 </div>
               </div>

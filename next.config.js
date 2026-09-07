@@ -14,6 +14,7 @@ const nextConfig = {
   // "headers" block. Vercel still reads vercel.json's "headers" for a
   // Next.js project (they aren't tied to the old "framework": "vite"
   // setting), so they're kept there rather than duplicated here.
+  
 
   experimental: {
     // Rewrites barrel imports to deep per-symbol paths at compile time, so a
@@ -23,6 +24,16 @@ const nextConfig = {
 
   async headers() {
     return [
+      {
+        // Apply CSP headers globally across all routes
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: "img-src 'self' data: blob: https://www.googletagmanager.com https://www.google-analytics.com https://res.cloudinary.com;",
+          },
+        ],
+      },
       {
         // /cart and /checkout are prerendered but hold no per-visitor data —
         // it all lives in localStorage. They dropped getServerSideProps (which
