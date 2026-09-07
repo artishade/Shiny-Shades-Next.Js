@@ -129,7 +129,7 @@ npm start                    # next start (production)
 
 ## Known Issues / TODOs
 
-- **`checkout.tsx:46`** — `MOBILE_BANKING_MERCHANT_NUMBER = '01700000000'` is a placeholder; TODO says to replace with real bKash/Nagad merchant numbers. bKash/Nagad flows currently send customers to send money manually with this fake number.
+- **`checkout.tsx:46`** — `MOBILE_BANKING_MERCHANT_NUMBER = '01893905484'` is a placeholder; TODO says to replace with real bKash/Nagad merchant numbers. bKash/Nagad flows currently send customers to send money manually with this fake number.
 - **`adminDataStore.ts`** — Coupons are persisted in localStorage via `persist` (using mock data as seed), even though the `coupons` table exists in Supabase and `useCouponStore` reads from it. There are two parallel coupon implementations (`useCouponStore` from `couponStore.ts` and `useAdminDataStore.coupons`); cart's `applyCoupon` uses `useCouponStore`. The admin Coupons page wires `useAdminDataStore` (see `CouponsInventoryReportsShared.tsx`), so admin-edited coupons in localStorage don't necessarily reach the cart's coupon source of truth.
 - **`README_PROGRESS.md`** — Author's note: conversion has been syntax-checked but not run through a real `next build` in the migration environment. First local `npm install && npm run build` may surface missing deps or type errors.
 - **`mockData.ts`** — Still referenced by `adminDataStore` for coupons. If you wire coupons fully to Supabase, this file's role can be reduced.

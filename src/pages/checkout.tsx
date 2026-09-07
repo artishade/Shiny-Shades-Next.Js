@@ -45,7 +45,7 @@ import { BRAND } from '@/config/brandingConfig';
 import { CHECKOUT_TRANSLATIONS, type CheckoutLang } from '@/config/checkoutTranslations';
 
 // TODO: বাস্তব বিকাশ/নগদ মার্চেন্ট নম্বর দিয়ে replace করুন
-const MOBILE_BANKING_MERCHANT_NUMBER = '01700000000';
+const MOBILE_BANKING_MERCHANT_NUMBER = '01893905484';
 
 interface BuyNowState {
   product: Product;
