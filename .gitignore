@@ -5,3 +5,4 @@ node_modules/
 .env*.local
 .kilo
 .claude
+claude_code_zai_env.sh

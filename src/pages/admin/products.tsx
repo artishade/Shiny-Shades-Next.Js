@@ -12,7 +12,7 @@ import { uploadToCloudinary, getOptimizedImageUrl } from '@/lib/cloudinary';
 import { SIMPLE_COLORS } from '@/lib/simpleColors';
 import { BRAND } from '@/config/brandingConfig';
 import React, { useEffect, useRef, useState } from 'react';
-import { Plus, Edit2, Trash2, Search, X, RefreshCw, Sparkles } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, X, RefreshCw, Sparkles, Download } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { Button, Input, Select, Badge, Modal } from '@/components/ui';
 import { useProductStore, useCategoryStore } from '@/store';
@@ -845,6 +845,101 @@ export const AdminProducts: React.FC = () => {
     return matchesSearch && matchesCat;
   });
 
+  // ────────────────────────────────────────────────
+  // CSV EXPORT — select-all + per-row manual selection
+  // ────────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Keep selection valid when the filtered list changes
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      const visible = new Set(filtered.map((p: Product) => p.id));
+      const next = new Set([...prev].filter((id) => visible.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [filtered]);
+
+  const allVisibleSelected = filtered.length > 0 && filtered.every((p: Product) => selectedIds.has(p.id));
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => {
+      if (allVisibleSelected) {
+        const next = new Set(prev);
+        filtered.forEach((p: Product) => next.delete(p.id));
+        return next;
+      }
+      return new Set([...prev, ...filtered.map((p: Product) => p.id)]);
+    });
+  };
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  /** Quotes a CSV cell; doubles embedded quotes so Excel/Sheets parse it correctly. */
+  const csvEscape = (value: unknown): string => {
+    const text =
+      value === null || value === undefined
+        ? ''
+        : Array.isArray(value)
+          ? value.join(' | ')
+          : String(value);
+    return `"${text.replace(/"/g, '""')}"`;
+  };
+
+  const exportSelectedCsv = () => {
+    const toExport = selectedIds.size > 0
+      ? products.filter((p: Product) => selectedIds.has(p.id))
+      : [];
+
+    if (toExport.length === 0) {
+      alert('Select at least one product to download CSV.');
+      return;
+    }
+
+    const headers = [
+      'ID', 'Name', 'SKU', 'Slug', 'Category', 'Price', 'Compare Price', 'Stock',
+      'Sizes', 'Colors', 'Tags', 'Featured', 'Trending', 'New Arrival', 'On Sale',
+      'Rating', 'Review Count', 'Short Description', 'Description', 'Images', 'Video URL',
+      'SEO Title', 'SEO Keywords', 'Created At', 'Updated At',
+    ];
+
+    const rows = toExport.map((p: Product) => [
+      p.id, p.name, p.sku, p.slug, p.category,
+      p.price, p.comparePrice ?? '', p.stock,
+      p.sizes || [], p.colors || [], p.tags || [],
+      p.isFeatured ? 'Yes' : 'No',
+      p.isTrending ? 'Yes' : 'No',
+      p.isNewArrival ? 'Yes' : 'No',
+      p.isOnSale ? 'Yes' : 'No',
+      p.rating ?? 0, p.reviewCount ?? 0,
+      p.shortDescription || '', p.description || '',
+      (p.images || []).join(' | '),
+      p.videoUrl || '',
+      p.seoTitle || '', p.seoKeywords || '',
+      p.createdAt || '', p.updatedAt || '',
+    ].map(csvEscape).join(','));
+
+    const csv = [headers.map(csvEscape).join(','), ...rows].join('\r\n');
+
+    // BOM so Excel opens UTF-8 (Bangla text) without garbling
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `products-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+
   const resetModal = () => {
     // Load the last-used watermark settings so the next upload
     // defaults to whatever the admin used before (on/off + options)
@@ -1163,7 +1258,18 @@ export const AdminProducts: React.FC = () => {
           <h1 className="heading-serif text-2xl md:text-3xl font-bold text-charcoal">Products</h1>
           <p className="text-[#6B5B55] text-sm">{products.length} total products</p>
         </div>
-        <Button onClick={openAdd}><Plus size={16} /> Add Product</Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="md"
+            onClick={exportSelectedCsv}
+            disabled={selectedIds.size === 0}
+            title={selectedIds.size === 0 ? 'Select products to download CSV' : `Download ${selectedIds.size} selected product(s) as CSV`}
+          >
+            <Download size={16} /> Download CSV{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
+          </Button>
+          <Button onClick={openAdd}><Plus size={16} /> Add Product</Button>
+        </div>
       </div>
 
       {/* ── Search & Filter ── */}
@@ -1192,6 +1298,15 @@ export const AdminProducts: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-blush/20 bg-blush-light/20">
+                <th className="w-10 py-3 px-3">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 accent-rose-gold cursor-pointer"
+                    title="Select all products"
+                  />
+                </th>
                 <th className="text-left py-3 px-4 text-[#6B5B55] font-medium">Product</th>
                 <th className="text-left py-3 px-4 text-[#6B5B55] font-medium">Category</th>
                 <th className="text-left py-3 px-4 text-[#6B5B55] font-medium">Price</th>
@@ -1203,6 +1318,14 @@ export const AdminProducts: React.FC = () => {
             <tbody>
               {filtered.map((product: Product) => (
                 <tr key={product.id} className="border-b border-blush/10 last:border-0 hover:bg-blush-light/10 transition-colors">
+                  <td className="py-3 px-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(product.id)}
+                      onChange={() => toggleSelectOne(product.id)}
+                      className="w-4 h-4 accent-rose-gold cursor-pointer"
+                    />
+                  </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-3">
                       {product.images?.[0]?.startsWith('http') ? (
