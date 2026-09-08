@@ -44,14 +44,7 @@ React.useEffect(() => {
       quantity: item.quantity,
     });
   });
-
-  // GTM — view_cart (existing code stays)
-  window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push({ ecommerce: null });
-  window.dataLayer.push({
-    event: 'view_cart',
-    // ...unchanged
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
 
   

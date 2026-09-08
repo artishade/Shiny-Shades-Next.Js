@@ -25,16 +25,6 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // Apply CSP headers globally across all routes
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: "img-src 'self' data: blob: https://www.googletagmanager.com https://www.google-analytics.com https://res.cloudinary.com;",
-          },
-        ],
-      },
-      {
         // /cart and /checkout are prerendered but hold no per-visitor data —
         // it all lives in localStorage. They dropped getServerSideProps (which
         // cost a /_next/data round trip on every client-side navigation), so
