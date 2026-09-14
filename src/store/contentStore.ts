@@ -186,7 +186,7 @@ export const defaultSiteSettings: SiteSettings = {
   address: '',
 
   currency: SITE.currency.code,
-  currencySymbol: '$',
+  currencySymbol: SITE.currency.symbol,
   paymentMethods: [...SITE.paymentMethods],
   paymentNumber: '',
 
@@ -206,7 +206,8 @@ export const defaultContent: ContentData = {
   newArrivalsSection: {
     title: 'New Arrivals',
     subtitle: 'Fresh styles just landed',
-    buttonUrl: '/products',
+    // /products never existed as a route — /shop is the real listing page.
+    buttonUrl: '/shop',
     emptyMessage: 'No new arrivals available.',
     backgroundColor: '#FAF7F3',
   },
@@ -215,7 +216,9 @@ export const defaultContent: ContentData = {
 
   announcement: {
     enabled: true,
-    messages: ['Free shipping on orders over $500!'],
+    // Matches the real cart/checkout policy (৳50,000 threshold) instead of
+    // a $-store default that never applied here.
+    messages: [`Free shipping on orders over ${SITE.currency.symbol}50,000!`],
     animation: 'marquee',
     bgColor: '#000000',
     textColor: '#ffffff',

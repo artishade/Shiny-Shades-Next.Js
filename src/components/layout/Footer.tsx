@@ -2,7 +2,7 @@
    Shiny Shades - Elegant Footer (Minimal Layout)
    =================================================== */
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from '@/lib/routerCompat';
 import { ArrowRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -76,7 +76,12 @@ export const Footer: React.FC = () => {
     { label: 'Terms & Conditions', to: '/terms' },
   ];
 
-  const currentYear = new Date().getFullYear();
+  // Computed post-mount: the build-time year in ISR HTML mismatched the
+  // client's year around Jan 1 and caused a hydration error.
+  const [currentYear, setCurrentYear] = useState(0);
+  useEffect(() => {
+    setCurrentYear(new Date().getFullYear());
+  }, []);
 
   return (
     <footer className="bg-[#0a0a0a] text-white">
@@ -255,7 +260,7 @@ export const Footer: React.FC = () => {
 
         <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-4">
           <p className="text-xs text-white/40">
-            © {currentYear} {BRAND.nameTop}. All rights reserved.
+            © {currentYear || 2026} {BRAND.nameTop}. All rights reserved.
           </p>
 
           <div className="flex gap-4">

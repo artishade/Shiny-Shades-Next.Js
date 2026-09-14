@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useRouter } from 'next/router';
+import Script from 'next/script';
 import { LazyMotion, domAnimation } from 'framer-motion';
 import '@/index.css';
 
@@ -14,6 +15,7 @@ import type { AppPropsWithLayout, PageInitialData } from '@/types/layout';
 import { useContentStore } from '@/store/contentStore';
 import { useCategoryStore } from '@/store/categoryStore';
 import { useProductStore } from '@/store/productStore';
+import { useCartStore, useRecentlyViewedStore, useWishlistStore } from '@/store';
 import { trackingConfig } from '@/config/trackingConfig';
 import { trackPageView } from '@/lib/facebookPixel';
 
@@ -159,6 +161,13 @@ function hydrateStores({ initialContent, initialCategories, initialProducts }: P
   if (clientHydrated) return;
   clientHydrated = true;
 
+  // Persisted stores rehydrate here, post-hydration, instead of during
+  // module init (see skipHydration in cartStore/uiStore) — otherwise the
+  // first client render shows a saved cart the server HTML never had.
+  void useCartStore.persist.rehydrate();
+  void useRecentlyViewedStore.persist.rehydrate();
+  void useWishlistStore.persist.rehydrate();
+
   if (initialContent) {
     useContentStore.setState({ content: initialContent, hasFetched: true });
   }
@@ -201,7 +210,12 @@ function AppBoot({ pageProps, children }: { pageProps: PageInitialData; children
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 export default function App({ Component, pageProps }: AppPropsWithLayout) {
-  const getLayout = Component.getLayout ?? ((page: ReactNode) => page);
+  // pageProps go in so layouts can read ISR content (announcement bar etc.)
+  const getLayout =
+    Component.getLayout ?? ((page: ReactNode) => page);
+  const layoutPage = typeof getLayout === 'function'
+    ? getLayout(<Component {...pageProps} />, pageProps as PageInitialData)
+    : getLayout;
 
   return (
     <ErrorBoundary>
@@ -210,12 +224,44 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
           gzip chunk on all 28 routes. `strict` makes a stray `motion.` throw
           instead of silently restoring that chunk. */}
       <LazyMotion features={domAnimation} strict>
+        {/* GTM + FB Pixel init scripts. next/script only supports
+            beforeInteractive inside _document (Pages Router), so they live
+            here — rendered once, outside the page tree. */}
+        <Script id="fb-pixel-init" strategy="afterInteractive">
+          {`
+            !function (f, b, e, v, n, t, s) {
+              if (f.fbq) return;
+              n = f.fbq = function () { n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments) };
+              if (!f._fbq) f._fbq = n;
+              n.push = n; n.loaded = !0; n.version = '2.0'; n.queue = [];
+              t = b.createElement(e); t.async = !0; t.src = v;
+              s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s);
+            }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', '${trackingConfig.facebookPixelId}');
+          `}
+        </Script>
+        {trackingConfig.gtmId && (
+          <Script id="gtm-init" strategy="afterInteractive">
+            {`
+              (function (w, d, s, l, i) {
+                w[l] = w[l] || [];
+                w[l].push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+                var f = d.getElementsByTagName(s)[0],
+                  j = d.createElement(s),
+                  dl = l != 'dataLayer' ? '&l=' + l : '';
+                j.async = true;
+                j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
+                f.parentNode.insertBefore(j, f);
+              })(window, document, 'script', 'dataLayer', '${trackingConfig.gtmId}');
+            `}
+          </Script>
+        )}
         <AppBoot pageProps={pageProps as PageInitialData}>
           {/* Global side-effects — rendered outside the page tree to avoid re-mounts */}
           <PixelTracker />
           <ScrollToTop />
 
-          {getLayout(<Component {...pageProps} />)}
+          {layoutPage}
         </AppBoot>
       </LazyMotion>
     </ErrorBoundary>

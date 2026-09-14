@@ -104,6 +104,8 @@ export const ShopPage: React.FC<PageInitialData> = ({ initialProducts }) => {
   const sortFilter = searchParams.get('sort') || 'newest';
   const searchQuery = searchParams.get('q') || '';
   const filterParam = searchParams.get('filter') || '';
+  // CategoryShowcase and the footer deep-link here as /shop?category=<name|slug>
+  const categoryParam = searchParams.get('category') || '';
 
   /* ── Filter state ── */
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -125,7 +127,23 @@ export const ShopPage: React.FC<PageInitialData> = ({ initialProducts }) => {
     if (searchParams.get('featured') === 'true') {
       setSelectedStyles(['Featured']);
     }
-  }, [filterParam, searchParams]);
+    // A ?category= deep link (homepage showcase / footer) selects that
+    // category's filter once. Matches on the category display name or the
+    // slug, whichever the caller used.
+    if (categoryParam) {
+      const byName = products.find(
+        (p) => p.category?.toLowerCase() === categoryParam.toLowerCase(),
+      );
+      const bySlug = products.find(
+        (p) => p.categorySlug?.toLowerCase() === categoryParam.toLowerCase(),
+      );
+      const match = byName?.category || bySlug?.category;
+      if (match) setSelectedCategories((prev) =>
+        prev.includes(match) ? prev : [...prev.filter(Boolean), match],
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterParam, categoryParam, searchParams, products.length]);
 
   // Reset infinite scroll count whenever filters, query or sorting changes
   useEffect(() => {
@@ -284,7 +302,13 @@ export const ShopPage: React.FC<PageInitialData> = ({ initialProducts }) => {
 
   const clearFilters = () => {
     const params = new URLSearchParams(searchParams);
+    // Also drop filter/featured/category — the param effect re-applies them
+    // on the next searchParams change, which used to resurrect the filter
+    // the user just cleared.
     params.delete('sort');
+    params.delete('filter');
+    params.delete('featured');
+    params.delete('category');
     setSearchParams(params);
     setSelectedCategories([]);
     setSelectedSizes([]);
@@ -579,8 +603,8 @@ export const ShopPage: React.FC<PageInitialData> = ({ initialProducts }) => {
   );
 };
 
-ShopPage.getLayout = function getLayout(page: React.ReactElement) {
-  return <CustomerLayout>{page}</CustomerLayout>;
+ShopPage.getLayout = function getLayout(page: React.ReactElement, pageProps?: PageInitialData) {
+  return <CustomerLayout initialContent={pageProps?.initialContent}>{page}</CustomerLayout>;
 };
 
 // ─── ISR ──────────────────────────────────────────────────────────────────────

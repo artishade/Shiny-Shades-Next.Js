@@ -12,6 +12,7 @@ import React, { useState, useMemo } from 'react';
 import { Plus, Trash2, AlertTriangle, TrendingUp, DollarSign, ShoppingBag, BarChart3, X, XCircle } from 'lucide-react';
 import { Button, Input, Select, Badge, Modal } from '@/components/ui';
 import { useCouponStore, useProductStore, useOrderStore } from '@/store';
+import { SITE } from '@/config/siteConfig';
 import type { Coupon } from '@/types';
 
 // ==========================================
@@ -70,7 +71,7 @@ export const AdminCoupons: React.FC = () => {
               </div>
               <div className="space-y-1.5 text-sm">
                 <p className="text-charcoal font-medium">
-                  {coupon.type === 'percentage' ? `${coupon.discount}% off` : `$${coupon.discount} off`}
+                  {coupon.type === 'percentage' ? `${coupon.discount}% off` : `${SITE.currency.symbol}${coupon.discount} off`}
                 </p>
                 <p className="text-[#6B5B55]">Min order: ${coupon.minOrderAmount}</p>
                 <p className="text-[#6B5B55]">Used: {coupon.usedCount}/{coupon.maxUses}</p>
@@ -304,9 +305,9 @@ export const AdminReports: React.FC = () => {
       {/* Key Metrics — all real */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
-          { label: 'Total Revenue', value: `$${totalRevenue.toFixed(2)}`, icon: DollarSign, color: 'text-green-600' },
+          { label: 'Total Revenue', value: `${SITE.currency.symbol}${totalRevenue.toFixed(2)}`, icon: DollarSign, color: 'text-green-600' },
           { label: 'Total Orders', value: totalOrders.toString(), icon: ShoppingBag, color: 'text-blue-600' },
-          { label: 'Avg Order Value', value: totalOrders > 0 ? `$${avgOrderValue.toFixed(2)}` : '$0', icon: TrendingUp, color: 'text-purple-600' },
+          { label: 'Avg Order Value', value: totalOrders > 0 ? `${SITE.currency.symbol}${avgOrderValue.toFixed(2)}` : `${SITE.currency.symbol}0`, icon: TrendingUp, color: 'text-purple-600' },
           { label: 'Cancelled Orders', value: cancelledOrders.toString(), icon: XCircle, color: 'text-red-500' },
         ].map(metric => (
           <div key={metric.label} className="glass-card rounded-2xl p-5">
@@ -324,7 +325,7 @@ export const AdminReports: React.FC = () => {
           <div className="flex items-end gap-3 h-48">
             {salesData.map(data => (
               <div key={data.month} className="flex-1 flex flex-col items-center gap-1">
-                <span className="text-[10px] text-[#6B5B55]">{data.revenue > 0 ? `$${(data.revenue / 1000).toFixed(1)}k` : '$0'}</span>
+                <span className="text-[10px] text-[#6B5B55]">{data.revenue > 0 ? `${SITE.currency.symbol}${(data.revenue / 1000).toFixed(1)}k` : `${SITE.currency.symbol}0`}</span>
                 <div className="w-full flex items-end" style={{ height: '100%' }}>
                   <div className="w-full rounded-t-md" style={{ height: `${Math.max((data.revenue / maxRevenue) * 100, data.revenue > 0 ? 4 : 0)}%`, background: 'linear-gradient(to top, #B76E79, #F4C2C2)', minHeight: data.revenue > 0 ? 4 : 0 }} />
                 </div>

@@ -272,11 +272,19 @@ export const SearchPage: React.FC<PageInitialData> = ({ initialProducts }) => {
                       </button>
                     </div>
                     {searchHistory.map(term => (
-                      <button
+                      <div
                         key={term}
-                        type="button"
+                        role="option"
+                        aria-selected={false}
+                        tabIndex={0}
                         onClick={() => handleSuggestionClick(term)}
-                        className="flex items-center justify-between w-full px-4 py-2 text-sm text-charcoal hover:bg-blush-light/50 transition-colors text-left"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleSuggestionClick(term);
+                          }
+                        }}
+                        className="flex items-center justify-between w-full px-4 py-2 text-sm text-charcoal hover:bg-blush-light/50 transition-colors text-left cursor-pointer"
                       >
                         <span className="flex items-center gap-2">
                           <Clock size={14} className="text-[#6B5B55]" />
@@ -290,7 +298,7 @@ export const SearchPage: React.FC<PageInitialData> = ({ initialProducts }) => {
                         >
                           <X size={14} />
                         </button>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 )}

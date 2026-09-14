@@ -18,7 +18,7 @@ export const CONTACT = {
     email: '',
 
     /** Physical office address */
-    address: '  ',
+    address: '',
 
     /** Instagram profile URL — leave '' to hide icon */
     instagram: '',
@@ -36,8 +36,10 @@ export type ContactConfig = typeof CONTACT;
 
 /** Returns a wa.me link, optionally with a pre-filled message */
 export const getWhatsAppLink = (message = '') => {
+    // wa.me requires digits only — the stored number keeps the display "+".
+    const digits = CONTACT.whatsapp.replace(/\D/g, '');
     const encoded = encodeURIComponent(message);
-    return `https://wa.me/${CONTACT.whatsapp}${message ? `?text=${encoded}` : ''}`;
+    return `https://wa.me/${digits}${message ? `?text=${encoded}` : ''}`;
 };
 
 /** Returns the full address as a single string */

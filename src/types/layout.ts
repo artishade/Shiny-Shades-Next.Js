@@ -6,8 +6,9 @@ import type { Category, Product } from '@/types';
 
 /**
  * Data a page can prerender via getStaticProps for _app to push into the
- * zustand stores before any child renders. Kept here (not on the page) because
- * getLayout receives no pageProps, so the layout can only read it via the store.
+ * zustand stores before any child renders. getLayout also receives it as
+ * its second argument so layouts (e.g. the announcement bar in
+ * CustomerLayout) can render ISR content in the server HTML.
  */
 export interface PageInitialData {
   initialContent?: ContentData | null;
@@ -16,7 +17,7 @@ export interface PageInitialData {
 }
 
 export type NextPageWithLayout<P = Record<string, unknown>, IP = P> = NextPage<P, IP> & {
-  getLayout?: (page: ReactElement) => ReactNode;
+  getLayout?: (page: ReactElement, pageProps?: PageInitialData) => ReactNode;
 };
 
 export type AppPropsWithLayout = AppProps & {
@@ -25,6 +26,6 @@ export type AppPropsWithLayout = AppProps & {
 
 declare module 'react' {
   interface FunctionComponent<P = {}> {
-    getLayout?: (page: ReactElement) => ReactNode;
+    getLayout?: (page: ReactElement, pageProps?: PageInitialData) => ReactNode;
   }
 }

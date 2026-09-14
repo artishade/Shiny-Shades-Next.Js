@@ -3,6 +3,15 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 
+// Plain `node` doesn't read .env (Next does, but this runs before next build).
+// dotenv is a devDependency; if it's missing (CI), the script still runs with
+// whatever env the platform provides.
+try {
+    (await import('dotenv')).config();
+} catch {
+    /* dotenv unavailable — rely on process env */
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -21,7 +30,13 @@ if (fs.existsSync(siteConfigPath)) {
 const routes = [
   { path: '', changefreq: 'daily', priority: '1.0', lastmod: new Date().toISOString() },
   { path: 'shop', changefreq: 'daily', priority: '0.9', lastmod: new Date().toISOString() },
-  { path: 'search', changefreq: 'daily', priority: '0.7', lastmod: new Date().toISOString() },
+  { path: 'categories', changefreq: 'weekly', priority: '0.8', lastmod: new Date().toISOString() },
+  { path: 'about', changefreq: 'monthly', priority: '0.5', lastmod: new Date().toISOString() },
+  { path: 'contact', changefreq: 'monthly', priority: '0.5', lastmod: new Date().toISOString() },
+  { path: 'terms', changefreq: 'yearly', priority: '0.3', lastmod: new Date().toISOString() },
+  { path: 'privacy-policy', changefreq: 'yearly', priority: '0.3', lastmod: new Date().toISOString() },
+  { path: 'return-policy', changefreq: 'yearly', priority: '0.3', lastmod: new Date().toISOString() },
+  // /search is noindex,follow — keep it out of the sitemap per Google's guidance.
 ];
 
 // 3. Pull live categories + products from Supabase (M1 fix — was reading
@@ -39,20 +54,23 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 } else {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  // The live categories table has drifted from schema.sql (no is_active / no
+  // updated_at), so request only columns that certainly exist and skip the
+  // active filter — a category page 404s anyway if deactivated.
   const { data: categories, error: catError } = await supabase
     .from('categories')
-    .select('slug, updated_at')
-    .eq('is_active', true);
+    .select('slug, created_at');
 
   if (catError) {
     console.error('[generate-sitemap] Failed to fetch categories:', catError.message);
   } else {
     for (const cat of categories ?? []) {
+      if (!cat.slug) continue;
       routes.push({
         path: `category/${cat.slug}`,
         changefreq: 'weekly',
         priority: '0.8',
-        lastmod: cat.updated_at ?? new Date().toISOString(),
+        lastmod: cat.created_at ?? new Date().toISOString(),
       });
     }
   }

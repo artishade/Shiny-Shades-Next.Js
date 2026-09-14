@@ -10,6 +10,7 @@ import { SITE } from '@/config/siteConfig';
 export const ContactUsPage: React.FC = () => {
   const [form, setForm] = useState({ name: '', email: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
+  const [mailtoMissing, setMailtoMissing] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -29,10 +30,14 @@ export const ContactUsPage: React.FC = () => {
 
     if (CONTACT.email) {
       window.location.href = `mailto:${CONTACT.email}?subject=${subject}&body=${body}`;
+      setSubmitted(true);
+      setForm({ name: '', email: '', message: '' });
+    } else {
+      // No email configured — tell the visitor instead of silently
+      // showing a success message that lost their message.
+      setSubmitted(false);
+      setMailtoMissing(true);
     }
-
-    setSubmitted(true);
-    setForm({ name: '', email: '', message: '' });
   };
 
   const canonical = `${SITE.domain.replace(/\/$/, '')}/contact`;
@@ -136,6 +141,12 @@ export const ContactUsPage: React.FC = () => {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
+                  {mailtoMissing && (
+                    <div role="alert" className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
+                      We couldn&apos;t open your email app because no support email is
+                      configured. Please reach us on WhatsApp or Facebook instead.
+                    </div>
+                  )}
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium text-charcoal mb-1.5">
                       Name

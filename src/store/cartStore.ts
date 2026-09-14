@@ -27,6 +27,19 @@ interface CartStore {
   getItemCount: () => number;
 }
 
+/**
+ * Admin saves coupon expiries as date-only strings ('2026-12-31'), which
+ * JS parses as UTC midnight — the START of that day. Comparing strictly
+ * against "now" expired the coupon during its last valid day, so the
+ * whole final day is treated as still valid.
+ */
+export const isCouponExpired = (expiresAt: string): boolean => {
+  if (!expiresAt) return false;
+  const endOfDay = new Date(`${expiresAt.slice(0, 10)}T23:59:59.999`);
+  if (Number.isNaN(endOfDay.getTime())) return false;
+  return endOfDay.getTime() < Date.now();
+};
+
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
@@ -45,12 +58,20 @@ export const useCartStore = create<CartStore>()(
             i.selectedColor === color,
         );
 
+        // Never let a cart line exceed live stock — the cart page only
+        // blocks manual increases, so an unclamped addItem could push a
+        // line past what the store can fulfil.
+        const stockCap = product.stock > 0 ? product.stock : Infinity;
+
         if (existingIndex >= 0) {
           const newItems = [...items];
 
           newItems[existingIndex] = {
             ...newItems[existingIndex],
-            quantity: newItems[existingIndex].quantity + quantity,
+            quantity: Math.min(
+              newItems[existingIndex].quantity + quantity,
+              stockCap,
+            ),
           };
 
           set({ items: newItems });
@@ -60,7 +81,7 @@ export const useCartStore = create<CartStore>()(
               ...items,
               {
                 product,
-                quantity,
+                quantity: Math.min(quantity, stockCap),
                 selectedSize: size,
                 selectedColor: color,
               },
@@ -139,7 +160,7 @@ export const useCartStore = create<CartStore>()(
           set({ couponError: 'Invalid coupon code', coupon: null, couponCode: '' });
           return;
         }
-        if (new Date(coupon.expiresAt) < new Date()) {
+        if (isCouponExpired(coupon.expiresAt)) {
           set({ couponError: 'Coupon has expired', coupon: null, couponCode: '' });
           return;
         }
@@ -176,6 +197,11 @@ export const useCartStore = create<CartStore>()(
         const { coupon } = get();
         if (!coupon) return 0;
         const subtotal = get().getSubtotal();
+        // Revalidate on every read: the cart can shrink below the coupon's
+        // minimum after the coupon was applied, or the coupon can expire
+        // while it sits in a persisted cart.
+        if (isCouponExpired(coupon.expiresAt)) return 0;
+        if (subtotal < coupon.minOrderAmount) return 0;
         return coupon.type === 'percentage'
           ? (subtotal * coupon.discount) / 100
           : Math.min(coupon.discount, subtotal);
@@ -186,6 +212,12 @@ export const useCartStore = create<CartStore>()(
       getItemCount: () =>
         get().items.reduce((sum, item) => sum + item.quantity, 0),
     }),
-    { name: 'cart' },
+    {
+      name: 'cart',
+      // Rehydrate manually in _app's AppBoot (see hydrateStores): doing it
+      // during module init mismatches the prerendered HTML for anyone with
+      // a saved cart, and React 19 turns that into a full client re-render.
+      skipHydration: true,
+    },
   ),
 );

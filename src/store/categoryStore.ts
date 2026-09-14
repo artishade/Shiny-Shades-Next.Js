@@ -88,9 +88,13 @@ export const useCategoryStore = create<CategoryStore>()((set, get) => ({
 
     set({ loading: true, error: null });
     try {
+      // is_active=true matches the products pattern — a category an admin
+      // deactivates must vanish from the storefront navbar/footer, not just
+      // from its own page.
       const { data, error } = await supabase
         .from('categories')
         .select('*')
+        .eq('is_active', true)
         .order('created_at', { ascending: true });
 
       if (error) throw error;

@@ -35,6 +35,7 @@ export interface RealOrder {
   couponCode?: string;
   subtotal: number;
   discount: number;
+  shippingCharge: number;
   total: number;
   notes?: string;
   createdAt: string;
@@ -57,6 +58,7 @@ function rowToOrder(row: any): RealOrder {
     couponCode: row.coupon_code ?? undefined,
     subtotal: Number(row.subtotal ?? 0),
     discount: Number(row.discount ?? 0),
+    shippingCharge: Number(row.shipping_charge ?? 0),
     total: Number(row.total ?? 0),
     notes: row.notes ?? undefined,
     createdAt: String(row.created_at ?? new Date().toISOString()),
@@ -86,6 +88,9 @@ function orderToRow(order: RealOrder): Record<string, unknown> {
     coupon_code: order.couponCode ?? null,
     subtotal: order.subtotal,
     discount: order.discount,
+    // Persist the delivery charge — the admin snapshots previously had to
+    // recover it arithmetically because every live row shipped null here.
+    shipping_charge: order.shippingCharge ?? null,
     total: order.total,
     notes: order.notes ?? null,
     customer_first_name: order.customer.firstName,
@@ -108,7 +113,7 @@ interface OrderStore {
   error: string | null;
 
   fetchOrders: () => Promise<void>;
-  placeOrder: (order: RealOrder) => Promise<void>;
+  placeOrder: (order: RealOrder) => Promise<RealOrder>;
   updateOrderStatus: (id: string, status: OrderStatus) => Promise<void>;
   updatePaymentStatus: (id: string, status: PaymentStatus) => Promise<void>;
   updateOrder: (order: RealOrder) => Promise<void>;
@@ -121,20 +126,30 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
   hasFetched: false,
   error: null,
 
-  // ── Fetch all orders from Supabase ──────────────────────────────────────────
+  // ── Fetch all orders (admin only, via the service-role API route) ─────────
   fetchOrders: async () => {
     if (get().loading) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Migration 009 removed the public SELECT on `orders` (PII leak), so
+      // the anon client can't read the table anymore. Admin panels go
+      // through /api/admin-orders, which verifies the caller server-side.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error('Sign in as an admin to load orders.');
 
-      if (error) throw error;
+      const res = await fetch('/api/admin-orders', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Failed to load orders');
+      }
+      const body = await res.json();
+      const rows: unknown[] = Array.isArray(body.orders) ? body.orders : [];
 
       set({
-        orders: (data ?? []).map(rowToOrder),
+        orders: rows.map((row) => rowToOrder(row)),
         loading: false,
         hasFetched: true,
       });
@@ -148,23 +163,34 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
     }
   },
 
-  // ── Place new order — insert into Supabase first ────────────────────────────
+  // ── Place new order — server-verified insert via /api/place-order ────────
+  // The API recomputes every money field from live products/coupons rows and
+  // does the insert with the service-role key, so a tampered localStorage
+  // cart can no longer produce a mispriced order.
   placeOrder: async (order) => {
     try {
-      const row = orderToRow(order);
-      delete row.id; // let Postgres generate the real UUID via gen_random_uuid()
+      const res = await fetch('/api/place-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(order),
+      });
 
-      const { error } = await supabase
-        .from('orders')
-        .insert(row);
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.error || 'Failed to place order');
+      }
 
-      if (error) throw error;
-
-      // No SELECT-back — guests have no SELECT policy on orders, by design
-      // (see schema.sql). Use the order object we already have locally for
-      // optimistic UI; the admin panel's fetchOrders() will show the real
-      // DB row (with real uuid + timestamps) on next load.
-      set({ orders: [order, ...get().orders] });
+      // Local state mirrors the server's authoritative numbers.
+      const placed: RealOrder = {
+        ...order,
+        orderNumber: body.order?.orderNumber ?? order.orderNumber,
+        subtotal: body.order?.subtotal ?? order.subtotal,
+        discount: body.order?.discount ?? order.discount,
+        shippingCharge: body.order?.shippingCharge ?? order.shippingCharge,
+        total: body.order?.total ?? order.total,
+      };
+      set({ orders: [placed, ...get().orders] });
+      return placed;
     } catch (err) {
       console.error('[OrderStore] placeOrder:', err);
       // Re-throw so the caller (Checkout) can surface a real error
@@ -183,9 +209,11 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
 
       if (error) throw error;
     } catch (err) {
+      // Swallow, but do NOT apply the optimistic write — the admin would
+      // see a status the database never accepted.
       console.error('[OrderStore] updateOrderStatus:', err);
+      return;
     }
-    // Optimistic local update regardless
     set({
       orders: get().orders.map((o) =>
         o.id === id ? { ...o, status, updatedAt: new Date().toISOString() } : o,
@@ -203,9 +231,11 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
 
       if (error) throw error;
     } catch (err) {
+      // Keep the row in the local list — deleting only the admin's view
+      // while the DB row survives is the worse failure mode.
       console.error('[OrderStore] deleteOrder:', err);
+      return;
     }
-    // Optimistic local removal regardless
     set({
       orders: get().orders.filter((o) => o.id !== id),
     });
@@ -222,6 +252,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
       if (error) throw error;
     } catch (err) {
       console.error('[OrderStore] updatePaymentStatus:', err);
+      return;
     }
     set({
       orders: get().orders.map((o) =>
@@ -243,6 +274,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
       if (error) throw error;
     } catch (err) {
       console.error('[OrderStore] updateOrder:', err);
+      return;
     }
     set({
       orders: get().orders.map((o) =>

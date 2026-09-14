@@ -13,10 +13,10 @@
  */
 
 // ── Persisted (localStorage) ────────────────────────────────────────────────
-export { useCartStore } from './cartStore';
+export { useCartStore, isCouponExpired } from './cartStore';
 export { useAdminAuthStore } from './adminAuthStore';
 export { useCouponStore } from './couponStore';
-export { useRecentlyViewedStore, useUIStore } from './uiStore';
+export { useRecentlyViewedStore, useUIStore, useWishlistStore } from './uiStore';
 
 // ── Supabase-backed (no localStorage) ───────────────────────────────────────
 export { useProductStore } from './productStore';

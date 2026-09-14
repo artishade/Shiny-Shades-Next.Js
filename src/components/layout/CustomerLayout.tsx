@@ -15,7 +15,7 @@ import { BRAND } from '@/config/brandingConfig';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
-import { useContentStore } from '@/store/contentStore';
+import { useContentStore, usePrerenderedContent, type ContentData } from '@/store/contentStore';
 
 // ─── Canonical origin (strip trailing slash once) ────────────────────────────
 
@@ -128,8 +128,17 @@ DefaultSEO.displayName = 'DefaultSEO';
 
 // ─── Customer layout ──────────────────────────────────────────────────────────
 
-export const CustomerLayout = memo(({ children }: { children: ReactNode }) => {
-  const announcement = useContentStore((s) => s.content.announcement);
+export const CustomerLayout = memo(({
+  children,
+  initialContent,
+}: {
+  children: ReactNode;
+  /** ISR content for the page — lets the announcement bar render server-side
+   *  instead of appearing a frame after hydration (whole-page CLS jump). */
+  initialContent?: unknown;
+}) => {
+  const prerendered = usePrerenderedContent(initialContent as ContentData | null | undefined);
+  const announcement = prerendered.announcement;
 
   const barVisible =
     announcement?.enabled && announcement?.messages?.some((m: string) => m?.trim());

@@ -23,11 +23,19 @@ export const CategoryShowcase: React.FC<CategoryShowcaseProps> = ({
     const categories = allCategoriesRaw.filter(cat => !cat.parentId);
     const { products } = usePrerenderedProducts(initialProducts);
 
-    // ← add this derived list
-    const categoriesWithCount = categories.map(cat => ({
-        ...cat,
-        productCount: products.filter(p => p.category === cat.name).length
-    }));
+    // Count a parent's products including its subcategories' — products filed
+    // under a subcategory carry the subcategory's name, so matching only the
+    // parent name showed "0 products" for filled parents.
+    const categoriesWithCount = categories.map(cat => {
+        const subNames = allCategoriesRaw
+            .filter(c => c.parentId === cat.id)
+            .map(c => c.name);
+        const names = [cat.name, ...subNames];
+        return {
+            ...cat,
+            productCount: products.filter(p => names.includes(p.category)).length,
+        };
+    });
 
     const CARD_WIDTH = 260 + 16;
     const allSlides = [...categoriesWithCount, ...categoriesWithCount, ...categoriesWithCount]; // ← swap categories → categoriesWithCount
@@ -91,6 +99,8 @@ export const CategoryShowcase: React.FC<CategoryShowcaseProps> = ({
                                             <img
                                                 src={category.image}
                                                 alt={category.name}
+                                                loading="lazy"
+                                                decoding="async"
                                                 className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                                             />
                                         )}

@@ -9,7 +9,7 @@ import { Link, useNavigate } from '@/lib/routerCompat';
 import { m as motion, AnimatePresence } from 'framer-motion';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Tag } from 'lucide-react';
 import { Button, EmptyState, PriceDisplay } from '@/components/ui';
-import { useCartStore } from '@/store';
+import { useCartStore, useCouponStore } from '@/store';
 import { SITE } from '@/config/siteConfig';
 import Head from 'next/head';
 import { trackPageView, trackViewContent } from '@/lib/facebookPixel';
@@ -30,12 +30,20 @@ export const CartPage: React.FC = () => {
   } = useCartStore();
   const [couponCode, setCouponCode] = React.useState('');
 
+  // applyCoupon reads coupons from useCouponStore — without this load, every
+  // code failed with "Invalid coupon" unless the visitor had been to /checkout
+  // first in the same session.
+  const loadCoupons = useCouponStore((s) => s.loadCoupons);
+  React.useEffect(() => {
+    loadCoupons();
+  }, [loadCoupons]);
+
   /* GTM — view_cart */
 React.useEffect(() => {
   if (items.length === 0) return;
 
-  // Meta Pixel
-  trackPageView();
+  // Meta Pixel: per-item ViewContent only — the PageView is already fired by
+  // _app's PixelTracker, so calling it here double-counted every /cart visit.
   items.forEach((item) => {
     trackViewContent({
       id: item.product.id,
@@ -112,6 +120,8 @@ React.useEffect(() => {
 
   // Free shipping threshold in BDT
   const FREE_SHIPPING_THRESHOLD = 50000;
+  // Matches checkout's zone charge — the exact zone (inside/outside Dhaka)
+  // is chosen at checkout, so the cart shows the inside-Dhaka rate.
   const SHIPPING_CHARGE = 80;
   const subtotal = getSubtotal();
   const discount = getDiscount();

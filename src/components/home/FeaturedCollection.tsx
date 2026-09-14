@@ -28,6 +28,11 @@ export const FeaturedCollection: React.FC<FeaturedCollectionProps> = ({
 
     if (!ready) return null;
 
+    // Grid is clipped to 3 rows of 4 cards (gridAutoRows: 0px below) — render
+    // only what's visible so the hidden cards' images aren't still downloaded.
+    const maxVisible = 12;
+    const visibleFeatured = featured.slice(0, maxVisible);
+
     return (
         <section className="py-6 md:py-8" style={{ backgroundColor: BRAND.colors.softBg }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -55,7 +60,7 @@ export const FeaturedCollection: React.FC<FeaturedCollectionProps> = ({
                                 gap: '20px',
                             }}
                         >
-                            {featured.map((product, idx) => (
+                            {visibleFeatured.map((product, idx) => (
                                 <div
                                     key={product.id}
                                     className="cursor-pointer group"

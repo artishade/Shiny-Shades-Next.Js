@@ -31,7 +31,7 @@ import {
 import { Button, Badge, PriceDisplay, FadeIn } from '@/components/ui';
 import { ProductCard } from '@/components/home';
 import { supabase } from '@/lib/supabase';
-import { useCartStore, useRecentlyViewedStore } from '@/store';
+import { useCartStore, useRecentlyViewedStore, useWishlistStore } from '@/store';
 import type { Product } from '@/types';
 import { trackViewContent } from '@/lib/facebookPixel';
 import { SITE } from '@/config/siteConfig';
@@ -179,8 +179,10 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const navigate = useNavigate();
   const addItem = useCartStore((s) => s.addItem);
   const addRecentlyViewed = useRecentlyViewedStore((s) => s.addProduct);
-
   const [product, setProduct] = useState<Product | null>(initialProduct);
+  const toggleWishlistItem = useWishlistStore((s) => s.toggleWishlistItem);
+  const wishlistIds = useWishlistStore((s) => s.wishlistIds);
+  const isWishlisted = product ? wishlistIds.includes(product.id) : false;
   const [related, setRelated] = useState<Product[]>(initialRelated);
   const [loading, setLoading] = useState<boolean>(!initialProduct);
   const [notFound, setNotFound] = useState(false);
@@ -224,10 +226,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       if (!initialProduct || initialProduct.slug !== slug) setLoading(true);
       setNotFound(false);
 
-      const imgParam = parseInt(searchParams.get('img') || '0', 10);
-      const initialIdx = Number.isFinite(imgParam) && imgParam >= 0 ? imgParam : 0;
-      setSelectedImage(initialIdx);
-
       try {
         const { data, error } = await supabase
           .from('products')
@@ -245,7 +243,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
         const normalised = normalise(data);
         setProduct(normalised);
-        setSelectedImage(Math.min(initialIdx, Math.max(normalised.images.length - 1, 0)));
+        setSelectedImage((i) => Math.min(i, Math.max(normalised.images.length - 1, 0)));
 
         // Instant Preloading of ALL gallery images in background
         if (normalised.images.length > 0) {
@@ -315,7 +313,19 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [slug, addRecentlyViewed, searchParams, initialProduct]);
+    // searchParams deliberately NOT a dep: ProductCard deep-links gallery
+    // images as ?img=N, and refetching (plus refiring view_item analytics)
+    // on every gallery click duplicated network traffic and events. The
+    // ?img index is handled by the separate effect below.
+  }, [slug, addRecentlyViewed, initialProduct]);
+
+  // ── Gallery deep-link (?img=N) — switch image without refetching ──────────
+  const imgParam = searchParams.get('img');
+  useEffect(() => {
+    const parsed = parseInt(imgParam || '0', 10);
+    const idx = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+    setSelectedImage(idx);
+  }, [imgParam]);
 
   // ── Auto scroll active thumbnail into view ─────────────────────────────────
   useEffect(() => {
@@ -549,10 +559,15 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 {/* Wishlist Button */}
                 <button
                   type="button"
+                  onClick={() => product && toggleWishlistItem(product.id)}
+                  aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                  aria-pressed={isWishlisted}
                   className="absolute top-3 right-3 md:top-4 md:right-4 z-20 w-9 h-9 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-transform active:scale-90 shadow-sm"
-                  aria-label="Add to wishlist"
                 >
-                  <Heart size={18} className="text-rose-gold" />
+                  <Heart
+                    size={18}
+                    className={isWishlisted ? 'text-rose-gold fill-rose-gold' : 'text-rose-gold'}
+                  />
                 </button>
 
                 {/* Left/Right Arrows */}

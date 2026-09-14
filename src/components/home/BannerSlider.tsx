@@ -113,6 +113,8 @@ export const BannerSlider: React.FC<{ initialContent?: ContentData | null }> = (
                                 <button
                                     key={i}
                                     onClick={() => setCurrent(i)}
+                                    aria-label={`Go to banner ${i + 1}`}
+                                    aria-current={i === current}
                                     className={`h-2.5 rounded-full transition-all duration-300 ${i === current ? 'bg-rose-gold w-8' : 'bg-white/60 w-2.5'
                                         }`}
                                 />
@@ -126,15 +128,17 @@ export const BannerSlider: React.FC<{ initialContent?: ContentData | null }> = (
                     <>
                         <button
                             onClick={() => setCurrent((prev) => (prev - 1 + banners.length) % banners.length)}
+                            aria-label="Previous banner"
                             className="absolute left-8 md:left-12 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full glass flex items-center justify-center hover:bg-white/80 transition-colors z-10"
                         >
-                            <ArrowLeft size={18} />
+                            <ArrowLeft size={18} aria-hidden="true" />
                         </button>
                         <button
                             onClick={() => setCurrent((prev) => (prev + 1) % banners.length)}
+                            aria-label="Next banner"
                             className="absolute right-8 md:right-12 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full glass flex items-center justify-center hover:bg-white/80 transition-colors z-10"
                         >
-                            <ArrowRight size={18} />
+                            <ArrowRight size={18} aria-hidden="true" />
                         </button>
                     </>
                 )}

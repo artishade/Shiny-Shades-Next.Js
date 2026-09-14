@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from '@/lib/routerCompat';
 import { m as motion } from 'framer-motion';
 import { ArrowRight, Sparkles } from 'lucide-react';
@@ -9,6 +9,19 @@ import { DEFAULT_HERO_LAYOUT, type HeroPosition } from '@/lib/heroLayout';
 export const Hero: React.FC<{ initialContent?: ContentData | null }> = ({ initialContent }) => {
     const navigate = useNavigate();
     const content = usePrerenderedContent(initialContent);
+
+    // Hooks before any early return — reduced-motion is read in an effect,
+    // not during render: a render-time matchMedia makes the server (false)
+    // and a reduced-motion client (true) render different props, which is
+    // a hydration mismatch.
+    const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+    useEffect(() => {
+        const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+        setPrefersReducedMotion(mq.matches);
+        const onChange = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+        mq.addEventListener('change', onChange);
+        return () => mq.removeEventListener('change', onChange);
+    }, []);
 
     if (!content.heroEnabled) return null;
 
@@ -61,10 +74,6 @@ export const Hero: React.FC<{ initialContent?: ContentData | null }> = ({ initia
     const heroMobileSrcSet = hasMobileImage
         ? buildSrcSet(content.heroImageUrlMobile!)
         : undefined;
-
-    const prefersReducedMotion =
-        typeof window !== 'undefined' &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     // Converts a saved {x,y} percentage into absolute CSS positioning.
     // translateY(-50%) keeps the drag handle's vertical center anchored

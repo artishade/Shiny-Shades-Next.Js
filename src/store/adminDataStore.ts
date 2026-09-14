@@ -19,6 +19,14 @@ interface AdminDataStore {
   toggleCoupon: (id: string) => void;
 }
 
+/**
+ * @deprecated — dead code. Nothing imports this store; coupons are fully
+ * wired to Supabase via useCouponStore (see CouponsInventoryReportsShared).
+ * Kept only to avoid breaking any stale import outside src/ — delete freely.
+ *
+ * NOTE: if this module ever gets imported again it re-seeds localStorage
+ * 'website-admin-data' with expired MOCK coupons on top of real data.
+ */
 export const useAdminDataStore = create<AdminDataStore>()(
   persist(
     (set, get) => ({

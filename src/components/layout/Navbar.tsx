@@ -184,7 +184,7 @@ export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
     <>
       {/* ── Outer fixed wrapper: shifts down when announcement bar is visible ── */}
       <div
-        className={`fixed left-0 right-0 z-50 pointer-events-none ${barVisible ? 'top-10' : 'top-0'
+        className={`fixed left-0 right-0 z-50 pointer-events-none ${barVisible ? 'top-9 md:top-10' : 'top-0'
           }`}
       >
         {/* ── Flush Top Navbar ── */}
@@ -380,6 +380,7 @@ export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
                       <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: warmGray }} />
                       <input
                         type="text"
+                        aria-label="Search products"
                         placeholder={`Search ${BRAND.searchHint ?? 'dresses, tops, accessories'}...`}
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
@@ -475,6 +476,7 @@ export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
                     <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: warmGray }} />
                     <input
                       type="text"
+                      aria-label="Search products"
                       placeholder="Search products..."
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}

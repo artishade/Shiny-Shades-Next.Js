@@ -37,15 +37,18 @@ import {
   Zap,
 } from 'lucide-react';
 import { useCartStore, useOrderStore, useCouponStore } from '@/store';
+import { isCouponExpired } from '@/store/cartStore';
 import { sendOrderToGoogleSheets } from '@/lib/supabase';
 import type { PaymentMethod, Product } from '@/types';
-import { trackInitiateCheckout, trackPurchase, trackPageView } from '@/lib/facebookPixel';
+import { trackInitiateCheckout, trackPurchase } from '@/lib/facebookPixel';
 import { SITE } from '@/config/siteConfig';
 import { BRAND } from '@/config/brandingConfig';
 import { CHECKOUT_TRANSLATIONS, type CheckoutLang } from '@/config/checkoutTranslations';
+import { CONTACT } from '@/config/contactConfig';
 
-// TODO: বাস্তব বিকাশ/নগদ মার্চেন্ট নম্বর দিয়ে replace করুন
-const MOBILE_BANKING_MERCHANT_NUMBER = '01893905484';
+// bKash/Nagad merchant number — single source of truth in contactConfig.
+// TODO: বাস্তব মার্চেন্ট নম্বর দিয়ে replace করুন
+const MOBILE_BANKING_MERCHANT_NUMBER = CONTACT.bkashNumber;
 
 interface BuyNowState {
   product: Product;
@@ -57,7 +60,11 @@ interface BuyNowState {
 /* ─── Language state store (per-page, persisted to localStorage) ─── */
 const LANG_STORAGE_KEY = 'checkout-lang';
 
-const getInitialLang = (): CheckoutLang => {
+/* SSR-safe: the server always renders English; the saved language is applied
+   in an effect after mount so the hydration render matches the HTML. */
+const getInitialLang = (): CheckoutLang => 'en';
+
+const readSavedLang = (): CheckoutLang => {
   if (typeof window === 'undefined') return 'en';
   const saved = window.localStorage.getItem(LANG_STORAGE_KEY);
   return saved === 'bn' || saved === 'en' ? saved : 'en';
@@ -239,7 +246,8 @@ export const CheckoutPage: React.FC = () => {
 
   useEffect(() => {
     loadCoupons();
-    trackPageView();
+    // PageView is fired by _app's PixelTracker on every route change —
+    // calling it here double-counted every checkout visit.
   }, [loadCoupons]);
 
   const buyNow = location.state as BuyNowState | null;
@@ -276,6 +284,11 @@ export const CheckoutPage: React.FC = () => {
 
   // Language State (EN / বাংলা)
   const [lang, setLang] = useState<CheckoutLang>(getInitialLang);
+
+  // Apply the saved language after mount (hydration-safe).
+  useEffect(() => {
+    setLang(readSavedLang());
+  }, []);
   const t = CHECKOUT_TRANSLATIONS[lang];
 
   useEffect(() => {
@@ -338,10 +351,21 @@ export const CheckoutPage: React.FC = () => {
     return false;
   }, [form.district, form.thana]);
 
-  const shippingCharge = isInsideDhaka ? 80 : 150;
+  const discount = buyNow ? 0 : cartCouponOverridden ? 0 : getDiscount();
+  const cartCouponCode = useCartStore.getState().coupon?.code;
+
+  const shippingCharge = (() => {
+    // Cart page promises free shipping above this subtotal-after-discount
+    // (cart.tsx FREE_SHIPPING_THRESHOLD) — honour it here so the two
+    // pages never disagree on what the customer will pay.
+    const FREE_SHIPPING_THRESHOLD = 50000;
+    const payable = subtotal - discount - couponDiscount;
+    if (payable >= FREE_SHIPPING_THRESHOLD) return 0;
+    return isInsideDhaka ? 80 : 150;
+  })();
+  const freeShippingApplied = shippingCharge === 0;
   const deliveryZoneLabel = isInsideDhaka ? t.zoneInside : t.zoneOutside;
 
-  const discount = buyNow ? 0 : cartCouponOverridden ? 0 : getDiscount();
   const total = Math.max(0, subtotal - discount - couponDiscount + shippingCharge);
 
   const updateForm = (field: keyof typeof form, value: string) => {
@@ -452,7 +476,7 @@ export const CheckoutPage: React.FC = () => {
       setCouponError(t.errCouponInvalid);
       return;
     }
-    if (new Date(coupon.expiresAt) < new Date()) {
+    if (isCouponExpired(coupon.expiresAt)) {
       setCouponError(t.errCouponExpired);
       return;
     }
@@ -512,7 +536,10 @@ export const CheckoutPage: React.FC = () => {
     if (placing) return;
     setPlacing(true);
 
-    const num = `${BRAND.orderPrefix}-${Date.now().toString().slice(-6)}`;
+    // Widen the number past Date.now's last 6 digits — two orders inside the
+    // same ~17-minute window used to collide on the UNIQUE order_number.
+    const nanoid = (await import('nanoid')).nanoid;
+    const num = `${BRAND.orderPrefix}-${Date.now().toString().slice(-6)}${nanoid(3).toUpperCase()}`;
     const [firstName, ...rest] = form.fullName.trim().split(' ');
     const lastName = rest.join(' ');
     const finalThana = form.district.startsWith('Dhaka') ? form.thana : form.customThana.trim();
@@ -524,20 +551,26 @@ export const CheckoutPage: React.FC = () => {
       status: 'pending' as const,
       paymentStatus: 'pending' as const,
       paymentMethod,
-      paymentDetails:
-        paymentMethod !== 'cod'
-          ? {
-            senderNumber: mobileBankingNumber.trim(),
-            transactionId: transactionId.trim().toUpperCase(),
-            merchantNumber: MOBILE_BANKING_MERCHANT_NUMBER,
-          }
+      // Persist the TrxID so admin can verify the bKash/Nagad transfer —
+      // previously this lived on an unsaved paymentDetails field and the
+      // admin panel always saw an empty transaction id.
+      transactionId:
+        paymentMethod !== 'cod' ? transactionId.trim().toUpperCase() : undefined,
+      couponCode: couponApplied
+        ? couponInput.trim().toUpperCase()
+        : discount > 0
+          ? cartCouponCode
           : undefined,
-      couponCode: couponApplied ? couponInput.trim().toUpperCase() : undefined,
       subtotal,
       shippingCharge,
       discount: discount + couponDiscount,
       total,
-      notes: form.notes || '-',
+      // Fold the sender number into notes — orders has no column for it,
+      // but admin needs it to match a bKash/Nagad transfer to the payer.
+      notes:
+        paymentMethod !== 'cod'
+          ? `${form.notes ? `${form.notes} | ` : ''}[${paymentMethod} from ${mobileBankingNumber.trim()}, TrxID ${transactionId.trim().toUpperCase()}]`
+          : form.notes || '-',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       customer: {
@@ -550,7 +583,9 @@ export const CheckoutPage: React.FC = () => {
         state: finalThana,
         postCode: '',
         country: 'Bangladesh',
-        district: deliveryZoneLabel,
+        // Store the real district, not the localized zone label — admin
+        // reports group on this field and got a mix of বাংলা/English before.
+        district: form.district,
       },
       items: checkoutItems.map((item) => ({
         productId: item.product.id,
@@ -564,7 +599,12 @@ export const CheckoutPage: React.FC = () => {
     };
 
     try {
-      await placeOrder(orderData);
+      // placeOrder goes through /api/place-order, which recomputes every
+      // money field server-side and returns the authoritative numbers.
+      const placed = await placeOrder(orderData);
+      const finalNum = placed.orderNumber || num;
+      const finalTotal = placed.total ?? total;
+
       trackPurchase(
         checkoutItems.map((item) => ({
           id: item.product.id,
@@ -572,7 +612,7 @@ export const CheckoutPage: React.FC = () => {
           price: item.product.price,
           quantity: item.quantity,
         })),
-        total,
+        finalTotal,
       );
 
       window.dataLayer = window.dataLayer || [];
@@ -580,9 +620,9 @@ export const CheckoutPage: React.FC = () => {
       window.dataLayer.push({
         event: 'purchase',
         ecommerce: {
-          transaction_id: num,
+          transaction_id: finalNum,
           currency: SITE.currency.code,
-          value: total,
+          value: finalTotal,
           shipping: shippingCharge,
           coupon: couponApplied ? couponInput.trim().toUpperCase() : undefined,
           items: checkoutItems.map((item) => ({
@@ -601,7 +641,7 @@ export const CheckoutPage: React.FC = () => {
         console.error('Google Sheets sync notice:', sheetsErr);
       }
 
-      setOrderNumber(num);
+      setOrderNumber(finalNum);
       setOrderPlaced(true);
       setShowReview(false);
       if (!buyNow) clearCart();
@@ -613,8 +653,13 @@ export const CheckoutPage: React.FC = () => {
     }
   };
 
+  // Redirect an empty cart before the form renders — in an effect, because
+  // navigating during render is a side effect React explicitly warns about.
+  useEffect(() => {
+    if (checkoutItems.length === 0 && !orderPlaced) navigate('/cart');
+  }, [checkoutItems.length, orderPlaced, navigate]);
+
   if (checkoutItems.length === 0 && !orderPlaced) {
-    navigate('/cart');
     return null;
   }
 
@@ -1158,7 +1203,9 @@ export const CheckoutPage: React.FC = () => {
 
             <div className="flex justify-between text-gray-600">
               <span>{t.deliveryChargeLabel(deliveryZoneLabel)}</span>
-              <span className="font-semibold text-gray-800">{SITE.currency.symbol}{shippingCharge}</span>
+              <span className={`font-semibold ${freeShippingApplied ? 'text-emerald-600' : 'text-gray-800'}`}>
+                {freeShippingApplied ? 'FREE' : `${SITE.currency.symbol}${shippingCharge}`}
+              </span>
             </div>
 
             <div className="flex justify-between items-center pt-2 border-t border-gray-200/80">

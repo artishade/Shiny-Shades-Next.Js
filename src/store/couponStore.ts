@@ -69,7 +69,9 @@ export const useCouponStore = create<CouponStore>()((set, get) => ({
             console.error('[CouponStore] loadCoupons:', err);
             set({
                 loading: false,
-                hasFetched: true,
+                // Leave hasFetched false so a transient network error can be
+                // retried on the next checkout visit instead of disabling
+                // coupons for the whole session.
                 error: err instanceof Error ? err.message : 'Failed to load coupons',
             });
         }

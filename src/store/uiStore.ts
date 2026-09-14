@@ -132,7 +132,7 @@ export const useRecentlyViewedStore = create<RecentlyViewedStore>()(
           .slice(0, limit);
       },
     }),
-    { name: 'website-recent' },
+    { name: 'website-recent', skipHydration: true },
   ),
 );
 
@@ -196,6 +196,6 @@ export const useWishlistStore = create<WishlistStore>()(
 
       wishlistCount: () => get().wishlistIds.length,
     }),
-    { name: 'wishlist' },
+    { name: 'wishlist', skipHydration: true },
   ),
 );

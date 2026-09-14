@@ -10,6 +10,7 @@ import { m as motion } from 'framer-motion';
 import { DollarSign, ShoppingCart, Package, AlertTriangle, TrendingUp, ShoppingBag } from 'lucide-react';
 import { FadeIn } from '@/components/ui';
 import { useOrderStore, useProductStore, useCategoryStore } from '@/store';
+import { SITE } from '@/config/siteConfig';
 
 export const AdminDashboard: React.FC = () => {
   // ✅ Real data from real stores
@@ -67,7 +68,7 @@ export const AdminDashboard: React.FC = () => {
         {[
           {
             label: 'Total Revenue',
-            value: `$${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            value: `${SITE.currency.symbol}${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
             icon: DollarSign,
             gradient: 'stat-gradient-1',
             sub: `${revenueOrders.length} orders`,
@@ -126,7 +127,7 @@ export const AdminDashboard: React.FC = () => {
               {salesData.map((data, index) => (
                 <div key={data.month} className="flex-1 flex flex-col items-center gap-2">
                   <span className="text-xs text-[#6B5B55]">
-                    {data.revenue > 0 ? `$${(data.revenue / 1000).toFixed(1)}k` : '$0'}
+                    {data.revenue > 0 ? `${SITE.currency.symbol}${(data.revenue / 1000).toFixed(1)}k` : `${SITE.currency.symbol}0`}
                   </span>
                   <div className="w-full flex items-end" style={{ height: '100%' }}>
                     <motion.div

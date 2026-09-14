@@ -96,7 +96,8 @@ const websiteSchema = {
   '@id': `${DOMAIN}/#website`,
   name: BRAND.fullName,
   url: DOMAIN,
-  inLanguage: ['en', 'bn'],
+  // schema.org expects a single Text value, not an array
+  inLanguage: 'en',
   publisher: { '@id': `${DOMAIN}/#organization` },
   potentialAction: {
     '@type': 'SearchAction',
@@ -151,7 +152,6 @@ const localBusinessSchema = {
     addressCountry: 'BD',
   },
   sameAs: [CONTACT.facebook, CONTACT.instagram].filter(Boolean),
-  hasMap: 'https://goo.gl/maps/dhaka',
 };
 
 // Serialised once at module load — never recreated on re-renders
@@ -348,7 +348,8 @@ export const HomePage: React.FC<PageInitialData> = ({
 }) => {
   // Admin → Content → SEO Settings values win; fall back to the source defaults
   // below only when the panel field is still empty.
-  const { siteSettings } = usePrerenderedContent(initialContent);
+  const content = usePrerenderedContent(initialContent);
+  const { siteSettings } = content;
   const pageTitle = siteSettings.defaultTitle?.trim() || PAGE_TITLE;
   const pageDescription = siteSettings.defaultDescription?.trim() || PAGE_DESCRIPTION;
   const pageKeywords = siteSettings.keywords?.length
@@ -431,19 +432,15 @@ export const HomePage: React.FC<PageInitialData> = ({
       </Head>
 
       {/*
-        Invisible H1 for SEO / accessibility fallback.
-
-        The Hero component renders a visible <h1> when heroEnabled is true
-        (see Hero in components/home/index.tsx). When the CMS disables the
-        hero, this sr-only <h1> guarantees the page always has exactly one
-        primary heading for screen readers and search crawlers.
-
-        Only one <h1> is visible at any time — the Hero's heading or this
-        fallback, never both simultaneously.
+        Invisible H1 fallback — ONLY when the Hero is disabled. The Hero
+        renders its own <h1> (heroTitle) when enabled, so rendering this
+        unconditionally produced two h1 elements on the page.
       */}
-      <h1 className="sr-only">
-        {BRAND.fullName} — Premium Women&apos;s Fashion Bangladesh
-      </h1>
+      {!content.heroEnabled && (
+        <h1 className="sr-only">
+          {BRAND.fullName} — Premium Women&apos;s Fashion Bangladesh
+        </h1>
+      )}
 
       {/*
         Render order is intentional for Core Web Vitals:
@@ -466,8 +463,9 @@ export const HomePage: React.FC<PageInitialData> = ({
   );
 };
 
-HomePage.getLayout = function getLayout(page: React.ReactElement) {
-  return <CustomerLayout>{page}</CustomerLayout>;
+HomePage.getLayout = function getLayout(page: React.ReactElement, pageProps?: PageInitialData) {
+  // Pass the ISR content down so the announcement bar is in the server HTML
+  return <CustomerLayout initialContent={pageProps?.initialContent}>{page}</CustomerLayout>;
 };
 
 // ─── ISR ──────────────────────────────────────────────────────────────────────

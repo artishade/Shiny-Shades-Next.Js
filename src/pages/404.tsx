@@ -2,7 +2,7 @@ import { CustomerLayout } from '@/components/layout/CustomerLayout';
 import React from 'react';
 import { Link } from '@/lib/routerCompat';
 import { Home, Search } from 'lucide-react';
-import { Button, FadeIn } from '@/components/ui';
+import { FadeIn } from '@/components/ui';
 import Head from 'next/head';
 
 export const NotFoundPage: React.FC = () => {
@@ -30,18 +30,21 @@ export const NotFoundPage: React.FC = () => {
                         </p>
 
                         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                            <Link to="/">
-                                <Button size="lg" className="w-full sm:w-auto">
-                                    <Home size={17} />
-                                    Back to Home
-                                </Button>
+                            {/* Link styled as a button — a <button> inside an
+                                anchor is invalid interactive nesting. */}
+                            <Link
+                                to="/"
+                                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl font-semibold bg-rose-gold text-white hover:opacity-90 transition-opacity w-full sm:w-auto"
+                            >
+                                <Home size={17} />
+                                Back to Home
                             </Link>
-
-                            <Link to="/shop">
-                                <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                                    <Search size={17} />
-                                    Browse Shop
-                                </Button>
+                            <Link
+                                to="/shop"
+                                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl font-semibold border-2 border-rose-gold text-rose-gold hover:bg-rose-50 transition-colors w-full sm:w-auto"
+                            >
+                                <Search size={17} />
+                                Browse Shop
                             </Link>
                         </div>
                     </div>

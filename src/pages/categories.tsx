@@ -173,11 +173,11 @@ CategoriesPage.getLayout = function getLayout(page: React.ReactElement) {
 };
 
 // ─── ISR: re-render the categories index every 10 minutes ─────────────────────
-export const getStaticProps: GetStaticProps<{ categories: Category[] }> = async () => {
+export const getStaticProps: GetStaticProps<{ initialCategories: Category[] }> = async () => {
   const client = getServerSupabase();
   if (!client) {
     // No Supabase creds at build time — let the client fetch.
-    return { props: { categories: [] }, revalidate: 600 };
+    return { props: { initialCategories: [] }, revalidate: 600 };
   }
 
   try {
@@ -187,15 +187,15 @@ export const getStaticProps: GetStaticProps<{ categories: Category[] }> = async 
       .order('name', { ascending: true });
 
     if (error || !data) {
-      return { props: { categories: [] }, revalidate: 600 };
+      return { props: { initialCategories: [] }, revalidate: 600 };
     }
 
     return {
-      props: { categories: data.map(rowToCategory) },
+      props: { initialCategories: data.map(rowToCategory) },
       revalidate: 600,
     };
   } catch {
-    return { props: { categories: [] }, revalidate: 600 };
+    return { props: { initialCategories: [] }, revalidate: 600 };
   }
 };
 

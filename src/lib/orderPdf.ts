@@ -8,6 +8,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { BRAND } from '@/config/brandingConfig';
 import { CONTACT } from '@/config/contactConfig';
+import { SITE } from '@/config/siteConfig';
 import type { RealOrder } from '@/store/orderStore';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -73,7 +74,8 @@ function formatDateTime(iso: string) {
 }
 
 function formatCurrency(n: number) {
-    return `$${n.toFixed(2)}`;
+    // The whole store prices in BDT (৳) — invoices used to print "$".
+    return `${SITE.currency.symbol}${n.toFixed(2)}`;
 }
 
 function statusLabel(s: string) {

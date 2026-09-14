@@ -9,6 +9,14 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
+// Fail loudly with the actual cause — createClient('', '') throws a cryptic
+// "Invalid URL" at import time that names neither variable.
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Supabase is not configured: set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (see .env.example).',
+  );
+}
+
 export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 
 // ===== Auth Helpers =====

@@ -4,6 +4,7 @@ import { m as motion } from 'framer-motion';
 import { ShoppingBag, Star } from 'lucide-react';
 import { PriceDisplay, Badge, StarRating } from '@/components/ui';
 import { getOptimizedImageUrl, getResponsiveSrcSet } from '@/lib/cloudinary';
+import { SITE } from '@/config/siteConfig';
 import type { Product } from '@/types';
 import { resolveColorHex } from '@/lib/colorUtils';
 
@@ -56,7 +57,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
         return (
             <Link
                 to={productUrl}
-                aria-label={`${product.name}${discountPct > 0 ? `, ${discountPct}% off` : ''}, $${product.price}`}
+                aria-label={`${product.name}${discountPct > 0 ? `, ${discountPct}% off` : ''}, ${SITE.currency.symbol}${product.price}`}
                 className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold focus-visible:ring-offset-2 rounded-[20px] group"
                 onClick={(e) => {
                     const target = e.target as HTMLElement;

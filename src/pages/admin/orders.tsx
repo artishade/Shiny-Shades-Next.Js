@@ -47,7 +47,7 @@ const blankNewItem = {
 };
 
 export const AdminOrders: React.FC = () => {
-  const { orders, fetchOrders, updateOrderStatus, updatePaymentStatus, updateOrder, deleteOrder } = useOrderStore();
+  const { orders, error: ordersError, fetchOrders, updateOrderStatus, updatePaymentStatus, updateOrder, deleteOrder } = useOrderStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -401,10 +401,17 @@ export const AdminOrders: React.FC = () => {
             <ShoppingBag size={40} className="mx-auto text-blush mb-3" />
             <p className="text-charcoal font-medium">No orders yet</p>
             <p className="text-[#6B5B55] text-sm mt-1">
-              {searchQuery || filterStatus
-                ? 'No orders match your search'
-                : 'Orders placed by customers will appear here'}
+              {ordersError
+                ? ordersError
+                : searchQuery || filterStatus
+                  ? 'No orders match your search'
+                  : 'Orders placed by customers will appear here'}
             </p>
+            {ordersError && (
+              <Button size="sm" variant="outline" className="mt-3" onClick={() => fetchOrders?.()}>
+                Retry
+              </Button>
+            )}
           </div>
         )}
       </div>

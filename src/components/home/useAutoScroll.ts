@@ -10,9 +10,20 @@ export function useAutoScroll(
     const animFrameRef = useRef<number>(0);
     const positionRef = useRef(0);
     const isPausedRef = useRef(false);
+    // Reduced-motion users get a static, arrow-navigable track (WCAG 2.3.3)
+    // — computed lazily so SSR never touches window.
+    const reducedMotionRef = useRef<boolean | null>(null);
+    const prefersReducedMotion = () => {
+        if (reducedMotionRef.current === null) {
+            reducedMotionRef.current =
+                typeof window !== 'undefined' &&
+                window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        }
+        return reducedMotionRef.current;
+    };
 
     const animate = useCallback(() => {
-        if (!trackRef.current || isPausedRef.current) {
+        if (!trackRef.current || isPausedRef.current || prefersReducedMotion()) {
             animFrameRef.current = requestAnimationFrame(animate);
             return;
         }
@@ -59,7 +70,11 @@ export function useAutoScroll(
 
     const handleNext = () => {
         isPausedRef.current = true;
+        const totalWidth = cardWidth * itemCount;
         positionRef.current += cardWidth;
+        // Wrap like the auto loop does — without this the translateX could
+        // run past the duplicated slides and show an empty track.
+        if (positionRef.current >= totalWidth) positionRef.current -= totalWidth;
         if (trackRef.current) {
             trackRef.current.style.transition = 'transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
             trackRef.current.style.transform = `translateX(-${positionRef.current}px)`;

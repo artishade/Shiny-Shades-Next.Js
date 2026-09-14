@@ -325,27 +325,21 @@ export const AboutUsPage: React.FC = () => {
               we will make it right. That&apos;s our word — not just a policy.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link to="/shop">
-                <Button
-                  variant="primary"
-                  size="lg"
-                  className="!bg-white !text-rose-gold hover:!bg-blush-light !shadow-none"
-                >
-                  Shop Now
-                </Button>
+              {/* Link styled as a button — a real <button> inside an <a> is
+                  invalid HTML (interactive nesting). */}
+              <Link
+                to="/shop"
+                className="inline-flex items-center justify-center px-8 py-3.5 rounded-2xl font-semibold text-base bg-white text-rose-gold hover:bg-blush-light transition-colors"
+              >
+                Shop Now
               </Link>
               <a
                 href={getWhatsAppLink(`Hello ${BRAND.fullName}, I have a question.`)}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="inline-flex items-center justify-center px-8 py-3.5 rounded-2xl font-semibold text-base border-2 border-white text-white hover:bg-white/10 transition-colors"
               >
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="!border-white !text-white hover:!bg-white/10 !shadow-none"
-                >
-                  Chat on WhatsApp
-                </Button>
+                Chat on WhatsApp
               </a>
             </div>
           </FadeIn>
