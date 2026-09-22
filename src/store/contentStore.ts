@@ -216,9 +216,9 @@ export const defaultContent: ContentData = {
 
   announcement: {
     enabled: true,
-    // Matches the real cart/checkout policy (৳50,000 threshold) instead of
+    // Matches the real cart/checkout policy (৳3,000 threshold) instead of
     // a $-store default that never applied here.
-    messages: [`Free shipping on orders over ${SITE.currency.symbol}50,000!`],
+    messages: [`Free shipping on orders over ${SITE.currency.symbol}3,000!`],
     animation: 'marquee',
     bgColor: '#000000',
     textColor: '#ffffff',
