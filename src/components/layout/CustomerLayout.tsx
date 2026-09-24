@@ -15,6 +15,7 @@ import { BRAND } from '@/config/brandingConfig';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
+import { CustomerFloatingChatbox } from '@/components/chat/CustomerFloatingChatbox';
 import { useContentStore, usePrerenderedContent, type ContentData } from '@/store/contentStore';
 
 // ─── Canonical origin (strip trailing slash once) ────────────────────────────
@@ -170,6 +171,7 @@ export const CustomerLayout = memo(({
       </main>
 
       <Footer />
+      <CustomerFloatingChatbox />
     </>
   );
 });

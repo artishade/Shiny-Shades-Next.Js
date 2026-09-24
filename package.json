@@ -3,17 +3,18 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev -p 3000 -H 0.0.0.0",
     "build:sitemap": "node scripts/generate-sitemap.mjs",
     "build": "npm run build:sitemap && next build",
-    "start": "next start",
-    "lint": "eslint ."
+    "start": "next start -p 3000 -H 0.0.0.0",
+    "tunnel": "bash scripts/tunnel.sh",
+    "lint": "next lint"
   },
   "dependencies": {
     "@cloudinary/react": "^1.14.4",
     "@cloudinary/url-gen": "^1.22.0",
+    "@google/genai": "^2.4.0",
     "@supabase/supabase-js": "^2.105.4",
-    "@vercel/analytics": "^2.0.1",
     "browser-image-compression": "^2.0.2",
     "cloudinary": "^2.10.0",
     "clsx": "2.1.1",
@@ -47,10 +48,5 @@
     "eslint-config-next": "15.5.23",
     "postcss": "^8.5.15",
     "typescript": "5.9.3"
-  },
-  "allowScripts": {
-    "core-js@3.50.0": true,
-    "sharp@0.34.5": true,
-    "unrs-resolver@1.12.2": true
   }
 }

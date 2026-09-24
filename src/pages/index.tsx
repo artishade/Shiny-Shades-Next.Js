@@ -31,6 +31,7 @@ import { siteConfig, SITE } from '@/config/siteConfig';
 import { BRAND } from '@/config/brandingConfig';
 import { CONTACT } from '@/config/contactConfig';
 import { usePrerenderedContent, mergeWithDefaults, CONTENT_ROW_ID } from '@/store/contentStore';
+import { products as mockProducts, categories as mockCategories } from '@/data/mockData';
 import type { PageInitialData } from '@/types/layout';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -499,17 +500,29 @@ export const getStaticProps: GetStaticProps<PageInitialData> = async () => {
       sb.from('products').select(PRODUCT_LIST_COLUMNS).eq('is_active', true).order('created_at', { ascending: false }),
     ]);
 
+    const dbCategories = (categoryRes.data ?? []).map(rowToCategory);
+    const dbProducts = (productRes.data ?? []).map(rowToProduct);
+
     const props: PageInitialData = {
-      initialContent: contentRes.data?.content ? mergeWithDefaults(contentRes.data.content) : null,
-      initialCategories: (categoryRes.data ?? []).map(rowToCategory),
-      initialProducts: (productRes.data ?? []).map(rowToProduct),
+      initialContent: contentRes.data?.content ? mergeWithDefaults(contentRes.data.content) : mergeWithDefaults({}),
+      initialCategories: dbCategories.length > 0 ? dbCategories : mockCategories,
+      initialProducts: dbProducts.length > 0 ? dbProducts : mockProducts,
     };
 
     // Next refuses `undefined` in props — rowToProduct leaves comparePrice undefined.
     return { props: JSON.parse(JSON.stringify(props)), revalidate: REVALIDATE_SECONDS };
   } catch (err) {
     console.error('[Home getStaticProps]', err);
-    return { props: {}, revalidate: REVALIDATE_SECONDS };
+    return {
+      props: JSON.parse(
+        JSON.stringify({
+          initialContent: mergeWithDefaults({}),
+          initialCategories: mockCategories,
+          initialProducts: mockProducts,
+        })
+      ),
+      revalidate: REVALIDATE_SECONDS,
+    };
   }
 };
 

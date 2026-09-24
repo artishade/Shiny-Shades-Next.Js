@@ -244,3 +244,70 @@ body {
   border-radius: 4px 4px 0 0;
   background: linear-gradient(to top, #B76E79, #D4949E, #F4C2C2);
 }
+
+/* ===== Luxury Editorial Additions ===== */
+.font-editorial {
+  font-family: "Cormorant Garamond", Garamond, Georgia, serif;
+  letter-spacing: -0.015em;
+}
+
+.font-sans-modern {
+  font-family: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+}
+
+.gold-gradient-text {
+  background: linear-gradient(135deg, #E4C96B 0%, #C9A227 45%, #9C7B18 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.rose-gold-gradient-text {
+  background: linear-gradient(135deg, #F0D5C0 0%, #B76E79 50%, #8B4557 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-border-glow {
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  box-shadow: 0 0 20px rgba(201, 162, 39, 0.08);
+}
+
+.gold-border-glow:hover {
+  border-color: rgba(201, 162, 39, 0.7);
+  box-shadow: 0 0 30px rgba(201, 162, 39, 0.18);
+}
+
+.satin-sheen {
+  position: relative;
+  overflow: hidden;
+}
+
+.satin-sheen::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    60deg,
+    rgba(255, 255, 255, 0) 30%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  transform: rotate(25deg) translateY(-100%);
+  transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+  pointer-events: none;
+}
+
+.satin-sheen:hover::after {
+  transform: rotate(25deg) translateY(100%);
+}
+
+.luxury-tag {
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+

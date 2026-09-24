@@ -44,8 +44,9 @@ const buildSystemPrompt = (categoryNames, prompts) => [
     'Reply with ONE JSON object and nothing else. No markdown, no code fences, no commentary.',
     'Use exactly these keys: name, seoTitle, shortDescription, description, tags, colors, categoryName, suggestedCategory.',
     ...prompts.promptLines(),
-    `Every color must be chosen VERBATIM from this list: ${SIMPLE_COLOR_NAMES.join(', ')}.`,
-    'Omit a color rather than invent a name that is not on that list.',
+    '- seoTitle: Compelling, keyword-rich SEO title (50-70 chars) e.g. "Exclusive Embroidered Silk Saree | Shiny Shades BD".',
+    '- tags: Array of 8 to 14 high-ranking SEO search tags and keywords for this item in fashion e-commerce (include style, fabric, occasion, trend, Bangladesh fashion keywords).',
+    `- colors: Array of visible colors (up to 6). Use standard names (${SIMPLE_COLOR_NAMES.slice(0, 15).join(', ')}, etc.) or specific aesthetic colors (e.g. Lavender, Emerald, Maroon, Champagne, Rose Dust).`,
     categoryNames.length
         ? `categoryName must be chosen VERBATIM from this list: ${categoryNames.join(', ')}. Use "" if none fit.`
         : 'The store has no categories yet, so categoryName must be "".',
@@ -193,7 +194,16 @@ export default async function handler(req, res) {
 
         const parsed = result.parsed;
         const cred = result.call.cred;
-        const { colors, dropped } = snapColorNames(parsed.colors, 6);
+        const { colors: snapped, dropped } = snapColorNames(parsed.colors, 6);
+        
+        // Preserve clean custom colors if dropped contains plausible color words
+        const customRetained = Array.isArray(dropped)
+            ? dropped
+                .map((c) => String(c).trim())
+                .filter((c) => c.length > 2 && c.length < 30 && /^[a-zA-Z\s#-]+$/.test(c))
+                .slice(0, 4)
+            : [];
+        const combinedColors = Array.from(new Set([...snapped, ...customRetained]));
 
         // The model may only name a category that exists; anything else becomes a
         // suggestion the owner has to accept explicitly.
@@ -201,17 +211,36 @@ export default async function handler(req, res) {
         const matched = categories.find((c) => c.name.toLowerCase() === namedCategory) || null;
         const suggested = matched ? '' : clamp(parsed.suggestedCategory || parsed.categoryName, 40);
 
+        const productName = clamp(parsed.name, 70);
+        let tags = cleanTags(parsed.tags);
+        
+        // Guarantee rich SEO tags if model returned few or empty
+        if (!tags || tags.length < 5) {
+            const extra = [
+                productName.toLowerCase(),
+                matched ? matched.name.toLowerCase() : '',
+                'women fashion bangladesh',
+                'online shopping bd',
+                'party wear collection',
+                'eid collection bd',
+                'trending outfit',
+            ].filter(Boolean);
+            tags = Array.from(new Set([...(tags || []), ...extra])).slice(0, 12);
+        }
+
+        const seoTitle = clamp(parsed.seoTitle, 70) || (productName ? `${productName} | Buy Online BD` : '');
+
         // Built key by key: the model's object is never spread, so an unexpected
         // key cannot reach the draft card.
         return res.status(200).json({
             ok: true,
             data: {
-                name: clamp(parsed.name, 70),
-                seoTitle: clamp(parsed.seoTitle, 70),
+                name: productName,
+                seoTitle,
                 shortDescription: clamp(parsed.shortDescription, 200),
                 description: clamp(parsed.description, 900),
-                tags: cleanTags(parsed.tags),
-                colors,
+                tags,
+                colors: combinedColors,
                 categoryName: matched ? matched.name : '',
                 categorySlug: matched ? matched.slug : '',
                 suggestedCategory: suggested,
@@ -219,7 +248,7 @@ export default async function handler(req, res) {
             meta: {
                 model: cred.model,
                 credentialLabel: cred.label,
-                droppedColors: dropped,
+                droppedColors: dropped.filter((d) => !customRetained.includes(d)),
                 imagesAnalyzed: images.dataUrls.length,
                 switchedFrom: result.call.attempts.map((a) => `${a.cred.label} (${a.status})`),
             },

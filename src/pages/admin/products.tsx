@@ -23,6 +23,14 @@ import { UploadCloud } from 'lucide-react';
 import { GripVertical } from 'lucide-react';
 import { useContentStore } from '@/store';
 import {
+  getRecentIndividualSizes,
+  getRecentSizeGroups,
+  recordUsedSizes,
+  seedSizesFromProducts,
+  removeRecentGroup,
+  type SizeGroup,
+} from '@/lib/recentSizes';
+import {
   applyWatermark,
   drawAGLogo,
   drawCustomLogoWatermark,
@@ -625,6 +633,26 @@ export const AdminProducts: React.FC = () => {
 
   useEffect(() => { fetchProducts(); }, []);
 
+  // ── Dynamic Recently-Used Sizes ──
+  const [recentSizeGroups, setRecentSizeGroups] = useState<SizeGroup[]>(() => getRecentSizeGroups());
+  const [recentIndividualSizes, setRecentIndividualSizes] = useState<string[]>(() => getRecentIndividualSizes());
+
+  const refreshRecentSizes = () => {
+    setRecentSizeGroups(getRecentSizeGroups());
+    setRecentIndividualSizes(getRecentIndividualSizes());
+  };
+
+  useEffect(() => {
+    refreshRecentSizes();
+    if (products && products.length > 0) {
+      seedSizesFromProducts(products);
+      refreshRecentSizes();
+    }
+    const handler = () => refreshRecentSizes();
+    window.addEventListener('shiny_recent_sizes_changed', handler);
+    return () => window.removeEventListener('shiny_recent_sizes_changed', handler);
+  }, [products]);
+
   // Auto-detect colors from first uploaded image
   useEffect(() => {
     if (imageFiles.length === 0) {
@@ -834,6 +862,7 @@ export const AdminProducts: React.FC = () => {
     const newSizes = sizeInput.split(',').map((s: string) => s.trim()).filter(Boolean);
     const existing = form.sizes || [];
     setForm({ ...form, sizes: [...new Set([...existing, ...newSizes])] });
+    recordUsedSizes(newSizes);
     setSizeInput('');
   };
   const removeSize = (size: string) =>
@@ -2324,26 +2353,69 @@ export const AdminProducts: React.FC = () => {
               />
               <Button size="sm" onClick={addSizes} type="button">Add</Button>
             </div>
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {[
-                { label: 'M–XL', sizes: ['M', 'L', 'XL'] },
-                { label: '32-38', sizes: ['32', '34', '36', '38'] },
-                { label: 'XS–XXL', sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'] },
-                { label: 'Free Size', sizes: ['Free Size'] },
-                { label: '32–40 (bra/chest)', sizes: ['32', '34', '36', '38', '40'] },
-                { label: '28–36 (waist)', sizes: ['28', '30', '32', '34', '36'] },
-                { label: 'S–XXL only', sizes: ['S', 'M', 'L', 'XL', 'XXL'] },
+            {/* Dynamic Recently-Used Size Groups */}
+            {recentSizeGroups.length > 0 && (
+              <div className="space-y-1 mb-2">
+                <span className="text-[11px] font-mono text-[#6B5B55] uppercase tracking-wider block">
+                  Recently Used Size Sets:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {recentSizeGroups.map(group => (
+                    <div key={group.id} className="inline-flex items-center rounded-lg bg-blush-light/60 border border-blush/20 overflow-hidden shadow-xs">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const existing = form.sizes || [];
+                          const merged = [...new Set([...existing, ...group.sizes])];
+                          setForm({ ...form, sizes: merged });
+                          recordUsedSizes(group.sizes);
+                        }}
+                        className="text-xs px-2.5 py-1 text-[#6B5B55] hover:text-charcoal hover:bg-blush-light transition-colors font-medium"
+                      >
+                        + {group.label}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeRecentGroup(group.id)}
+                        className="px-1.5 py-1 text-[#6B5B55]/40 hover:text-red-500 hover:bg-red-50 transition-colors border-l border-blush/20"
+                        title="Remove suggestion"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-
-              ].map(preset => (
-                <button key={preset.label} type="button"
-                  onClick={() => { const existing = form.sizes || []; setForm({ ...form, sizes: [...new Set([...existing, ...preset.sizes])] }); }}
-                  className="text-xs px-2.5 py-1 rounded-lg bg-blush-light/60 text-[#6B5B55] hover:bg-blush-light transition-colors border border-blush/20"
-                >
-                  + {preset.label}
-                </button>
-              ))}
-            </div>
+            {/* Individual Quick Sizes */}
+            {recentIndividualSizes.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
+                <span className="text-[10px] text-[#6B5B55] uppercase font-mono tracking-wider mr-1">Quick:</span>
+                {recentIndividualSizes.map(size => {
+                  const isAdded = (form.sizes || []).includes(size);
+                  return (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => {
+                        const existing = form.sizes || [];
+                        const merged = [...new Set([...existing, size])];
+                        setForm({ ...form, sizes: merged });
+                        recordUsedSizes([size]);
+                      }}
+                      className={`text-xs px-2 py-0.5 rounded-md border transition-all ${
+                        isAdded
+                          ? 'bg-rose-gold/15 text-rose-gold border-rose-gold font-medium'
+                          : 'bg-white text-[#6B5B55] border-blush/20 hover:bg-blush-light'
+                      }`}
+                    >
+                      {isAdded ? `✓ ${size}` : `+ ${size}`}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {(form.sizes || []).length > 0 && (
               <>
                 <p className="text-xs text-[#6B5B55] mb-2">Selected ({(form.sizes || []).length}):</p>

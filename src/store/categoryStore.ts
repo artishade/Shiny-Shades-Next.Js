@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import type { Category } from '@/types';
+import { categories as mockCategories } from '@/data/mockData';
 
 // ─── Row ↔ Domain ─────────────────────────────────────────────────────────────
 
@@ -99,18 +100,20 @@ export const useCategoryStore = create<CategoryStore>()((set, get) => ({
 
       if (error) throw error;
 
+      const loadedCats = (data ?? []).map(rowToCategory);
       set({
-        categories: (data ?? []).map(rowToCategory),
+        categories: loadedCats.length > 0 ? loadedCats : mockCategories,
         loading: false,
         hasFetched: true,
       });
     } catch (err) {
       console.error('[CategoryStore] loadCategories:', err);
-      set({
+      set((s) => ({
+        categories: s.categories.length > 0 ? s.categories : mockCategories,
         loading: false,
         hasFetched: true,
         error: err instanceof Error ? err.message : 'Failed to load categories',
-      });
+      }));
     }
   },
 
@@ -125,8 +128,9 @@ export const useCategoryStore = create<CategoryStore>()((set, get) => ({
 
       if (error) throw error;
 
+      const loadedCats = (data ?? []).map(rowToCategory);
       set({
-        categories: (data ?? []).map(rowToCategory),
+        categories: loadedCats.length > 0 ? loadedCats : mockCategories,
         loading: false,
         hasFetched: true,
         slugCache: {}, // wipe cache to ensure fresh data
@@ -164,7 +168,9 @@ export const useCategoryStore = create<CategoryStore>()((set, get) => ({
         .single();
 
       if (error) {
-        if (error.code === 'PGRST116') return null; // PostgREST code for 'Not Found'
+        if (error.code === 'PGRST116') {
+          return mockCategories.find((c) => c.slug === slug) ?? null;
+        }
         throw error;
       }
 
@@ -173,10 +179,10 @@ export const useCategoryStore = create<CategoryStore>()((set, get) => ({
         set((s) => ({ slugCache: { ...s.slugCache, [slug]: category } }));
         return category;
       }
-      return null;
+      return mockCategories.find((c) => c.slug === slug) ?? null;
     } catch (err) {
       console.error('[CategoryStore] getCategoryBySlug:', err);
-      return null;
+      return mockCategories.find((c) => c.slug === slug) ?? null;
     } finally {
       set({ isSlugLoading: false });
     }

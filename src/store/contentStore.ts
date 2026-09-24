@@ -195,13 +195,64 @@ export const defaultSiteSettings: SiteSettings = {
   privacyPolicy: '',
 };
 
+export const defaultBanners: Banner[] = [
+  {
+    id: '1',
+    title: 'Festive Couture & Silk Edit',
+    subtitle: 'Handcrafted Banarasi sarees, regal lehengas & embroidered luxury silhouettes',
+    buttonText: 'Shop Sarees',
+    buttonLink: '/shop?category=sarees',
+    gradient: 'linear-gradient(135deg, rgba(183, 110, 121, 0.8), rgba(244, 194, 194, 0.8))',
+    imageUrl: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=1600',
+    imageUrlMobile: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800',
+    mediaType: 'image',
+    active: true,
+  },
+  {
+    id: '2',
+    title: 'Evening Elegance & Gowns',
+    subtitle: 'Command every room with bespoke satin silhouettes and crystal embellishments',
+    buttonText: 'View Evening Wear',
+    buttonLink: '/category/evening-wear',
+    gradient: 'linear-gradient(135deg, rgba(40, 20, 30, 0.8), rgba(183, 110, 121, 0.8))',
+    imageUrl: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=1600',
+    imageUrlMobile: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=800',
+    mediaType: 'image',
+    active: true,
+  },
+  {
+    id: '3',
+    title: 'Luxe Chiffon & Summer Pret',
+    subtitle: 'Effortless lightweight silhouettes designed for daytime grace and chic style',
+    buttonText: 'Explore Pret',
+    buttonLink: '/shop',
+    gradient: 'linear-gradient(135deg, rgba(230, 230, 250, 0.8), rgba(247, 231, 206, 0.8))',
+    imageUrl: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=1600',
+    imageUrlMobile: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=800',
+    mediaType: 'image',
+    active: true,
+  },
+  {
+    id: '4',
+    title: 'Celebration Sale — Up to 40% Off',
+    subtitle: 'Signature designer pieces at limited-time celebratory prices',
+    buttonText: 'Shop Sale',
+    buttonLink: '/shop?sale=true',
+    gradient: 'linear-gradient(135deg, rgba(212, 148, 158, 0.8), rgba(244, 194, 194, 0.8))',
+    imageUrl: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=1600',
+    imageUrlMobile: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=800',
+    mediaType: 'image',
+    active: true,
+  },
+];
+
 export const defaultContent: ContentData = {
   heroEnabled: true,
   heroTitle: 'Discover Your Style',
-  heroSubtitle: 'Explore our curated collection of girlswear — designed for confidence, comfort, and elegance.',
+  heroSubtitle: 'Explore our curated collection of luxury women fashion — designed for confidence, comfort, and timeless elegance.',
   heroButtonText: 'Shop Now',
-  heroImageUrl: '',
-  heroImageUrlMobile: '',
+  heroImageUrl: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&q=80&w=1920',
+  heroImageUrlMobile: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&q=80&w=800',
 
   newArrivalsSection: {
     title: 'New Arrivals',
@@ -212,7 +263,7 @@ export const defaultContent: ContentData = {
     backgroundColor: '#FAF7F3',
   },
 
-  banners: [],
+  banners: defaultBanners,
 
   announcement: {
     enabled: true,
@@ -274,6 +325,9 @@ export function mergeWithDefaults(loaded: Partial<ContentData>): ContentData {
     ...defaultContent,
     ...loaded,
 
+    heroImageUrl: loaded.heroImageUrl || defaultContent.heroImageUrl,
+    heroImageUrlMobile: loaded.heroImageUrlMobile || defaultContent.heroImageUrlMobile,
+
     newArrivalsSection: {
       ...defaultContent.newArrivalsSection,
       ...(loaded.newArrivalsSection ?? {}),
@@ -288,7 +342,7 @@ export function mergeWithDefaults(loaded: Partial<ContentData>): ContentData {
           : defaultContent.announcement.messages,
     },
 
-    banners: Array.isArray(loaded.banners) ? loaded.banners : [],
+    banners: Array.isArray(loaded.banners) && loaded.banners.length > 0 ? loaded.banners : defaultBanners,
 
     // Merge siteSettings: DB value wins; anything missing falls back to siteConfig.ts defaults
     siteSettings: {
@@ -388,6 +442,7 @@ export const useContentStore = create<ContentStore>()((set, get) => ({
         err instanceof Error ? err.message : 'Failed to load content',
       );
       set((s) => ({
+        content: defaultContent,
         loading: { ...s.loading, load: false },
         hasFetched: true,
       }));

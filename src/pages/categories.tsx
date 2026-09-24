@@ -15,6 +15,7 @@ import { FadeIn } from '@/components/ui';
 import { useCategoryStore } from '@/store';
 import { SITE } from '@/config/siteConfig';
 import { BRAND } from '@/config/brandingConfig';
+import { categories as mockCategories } from '@/data/mockData';
 import type { Category } from '@/types';
 import type { GetStaticProps } from 'next';
 
@@ -176,8 +177,7 @@ CategoriesPage.getLayout = function getLayout(page: React.ReactElement) {
 export const getStaticProps: GetStaticProps<{ initialCategories: Category[] }> = async () => {
   const client = getServerSupabase();
   if (!client) {
-    // No Supabase creds at build time — let the client fetch.
-    return { props: { initialCategories: [] }, revalidate: 600 };
+    return { props: { initialCategories: mockCategories }, revalidate: 600 };
   }
 
   try {
@@ -186,8 +186,8 @@ export const getStaticProps: GetStaticProps<{ initialCategories: Category[] }> =
       .select('*')
       .order('name', { ascending: true });
 
-    if (error || !data) {
-      return { props: { initialCategories: [] }, revalidate: 600 };
+    if (error || !data || data.length === 0) {
+      return { props: { initialCategories: mockCategories }, revalidate: 600 };
     }
 
     return {
@@ -195,7 +195,7 @@ export const getStaticProps: GetStaticProps<{ initialCategories: Category[] }> =
       revalidate: 600,
     };
   } catch {
-    return { props: { initialCategories: [] }, revalidate: 600 };
+    return { props: { initialCategories: mockCategories }, revalidate: 600 };
   }
 };
 

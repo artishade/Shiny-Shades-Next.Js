@@ -155,6 +155,10 @@ export interface Banner {
   buttonText: string;
   buttonLink: string;
   gradient: string;
+  imageUrl?: string;
+  imageUrlMobile?: string;
+  videoUrl?: string;
+  mediaType?: 'image' | 'video' | 'gradient';
   active: boolean;
 }
 

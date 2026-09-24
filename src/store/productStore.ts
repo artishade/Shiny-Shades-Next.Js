@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import type { Product } from '@/types';
+import { products as mockProducts } from '@/data/mockData';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -301,7 +302,8 @@ export const useProductStore = create<ProductStore>()((set, get) => ({
     set((s) => ({ loading: { ...s.loading, list: true } }));
 
     try {
-      const products = await fetchAllFromSupabase();
+      const dbProducts = await fetchAllFromSupabase();
+      const products = dbProducts.length > 0 ? dbProducts : mockProducts;
       set({
         products,
         hasFetched: true,
@@ -317,7 +319,11 @@ export const useProductStore = create<ProductStore>()((set, get) => ({
         'FETCH_FAILED',
         err instanceof Error ? err.message : 'Failed to load products',
       );
-      set((s) => ({ loading: { ...s.loading, list: false }, hasFetched: true }));
+      set((s) => ({
+        products: s.products.length > 0 ? s.products : mockProducts,
+        loading: { ...s.loading, list: false },
+        hasFetched: true,
+      }));
     }
   },
 
@@ -333,7 +339,8 @@ export const useProductStore = create<ProductStore>()((set, get) => ({
     }));
 
     try {
-      const products = await fetchAllFromSupabase();
+      const dbProducts = await fetchAllFromSupabase();
+      const products = dbProducts.length > 0 ? dbProducts : mockProducts;
       set({
         products,
         hasFetched: true,
@@ -349,7 +356,11 @@ export const useProductStore = create<ProductStore>()((set, get) => ({
         'FETCH_FAILED',
         err instanceof Error ? err.message : 'Failed to reload products',
       );
-      set((s) => ({ loading: { ...s.loading, list: false }, hasFetched: true }));
+      set((s) => ({
+        products: s.products.length > 0 ? s.products : mockProducts,
+        loading: { ...s.loading, list: false },
+        hasFetched: true,
+      }));
     }
   },
 
@@ -383,12 +394,28 @@ export const useProductStore = create<ProductStore>()((set, get) => ({
         }));
         return product;
       } else {
+        const fallback = mockProducts.find((p) => p.slug === slug) ?? null;
+        if (fallback) {
+          set((s) => ({
+            slugCache: { ...s.slugCache, [slug]: fallback },
+            loading: { ...s.loading, slug: false },
+          }));
+          return fallback;
+        }
         _setError('SLUG_NOT_FOUND', `Product not found: ${slug}`);
         set((s) => ({ loading: { ...s.loading, slug: false } }));
         return null;
       }
     } catch (err) {
       console.error('[ProductStore] getProductBySlug:', err);
+      const fallback = mockProducts.find((p) => p.slug === slug) ?? null;
+      if (fallback) {
+        set((s) => ({
+          slugCache: { ...s.slugCache, [slug]: fallback },
+          loading: { ...s.loading, slug: false },
+        }));
+        return fallback;
+      }
       _setError(
         'FETCH_FAILED',
         err instanceof Error ? err.message : 'Failed to load product',

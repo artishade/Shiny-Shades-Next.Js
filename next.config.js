@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
 
   // Vite's build target was ES2020 / evergreen mobile browsers (Chrome-heavy
   // Bangladesh market) — Next.js's SWC compiler targets modern browsers by

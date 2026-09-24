@@ -7,7 +7,9 @@ import { createClient } from '@supabase/supabase-js';
 // dotenv is a devDependency; if it's missing (CI), the script still runs with
 // whatever env the platform provides.
 try {
-    (await import('dotenv')).config();
+    const dotenv = await import('dotenv');
+    dotenv.config({ path: '.env.local' });
+    dotenv.config({ path: '.env' });
 } catch {
     /* dotenv unavailable — rely on process env */
 }
@@ -52,45 +54,49 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     'Falling back to static routes only — categories/products will be missing from the sitemap.'
   );
 } else {
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  try {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  // The live categories table has drifted from schema.sql (no is_active / no
-  // updated_at), so request only columns that certainly exist and skip the
-  // active filter — a category page 404s anyway if deactivated.
-  const { data: categories, error: catError } = await supabase
-    .from('categories')
-    .select('slug, created_at');
+    // The live categories table has drifted from schema.sql (no is_active / no
+    // updated_at), so request only columns that certainly exist and skip the
+    // active filter — a category page 404s anyway if deactivated.
+    const { data: categories, error: catError } = await supabase
+      .from('categories')
+      .select('slug, created_at');
 
-  if (catError) {
-    console.error('[generate-sitemap] Failed to fetch categories:', catError.message);
-  } else {
-    for (const cat of categories ?? []) {
-      if (!cat.slug) continue;
-      routes.push({
-        path: `category/${cat.slug}`,
-        changefreq: 'weekly',
-        priority: '0.8',
-        lastmod: cat.created_at ?? new Date().toISOString(),
-      });
+    if (catError) {
+      console.error('[generate-sitemap] Failed to fetch categories:', catError.message);
+    } else {
+      for (const cat of categories ?? []) {
+        if (!cat.slug) continue;
+        routes.push({
+          path: `category/${cat.slug}`,
+          changefreq: 'weekly',
+          priority: '0.8',
+          lastmod: cat.created_at ?? new Date().toISOString(),
+        });
+      }
     }
-  }
 
-  const { data: products, error: prodError } = await supabase
-    .from('products')
-    .select('slug, updated_at')
-    .eq('is_active', true);
+    const { data: products, error: prodError } = await supabase
+      .from('products')
+      .select('slug, updated_at')
+      .eq('is_active', true);
 
-  if (prodError) {
-    console.error('[generate-sitemap] Failed to fetch products:', prodError.message);
-  } else {
-    for (const prod of products ?? []) {
-      routes.push({
-        path: `product/${prod.slug}`,
-        changefreq: 'weekly',
-        priority: '0.6',
-        lastmod: prod.updated_at ?? new Date().toISOString(),
-      });
+    if (prodError) {
+      console.error('[generate-sitemap] Failed to fetch products:', prodError.message);
+    } else {
+      for (const prod of products ?? []) {
+        routes.push({
+          path: `product/${prod.slug}`,
+          changefreq: 'weekly',
+          priority: '0.6',
+          lastmod: prod.updated_at ?? new Date().toISOString(),
+        });
+      }
     }
+  } catch (dbErr) {
+    console.warn('[generate-sitemap] Could not connect to Supabase database (local dev offline):', dbErr.message);
   }
 }
 

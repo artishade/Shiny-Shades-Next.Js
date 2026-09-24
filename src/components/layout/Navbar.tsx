@@ -492,6 +492,7 @@ export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
                     <Link
                       key={link.path}
                       to={link.path}
+                      onClick={() => setMobileMenuOpen(false)}
                       className="block px-4 py-2.5 rounded-xl text-[10px] font-semibold tracking-[0.25em] uppercase transition-colors"
                       style={{
                         backgroundColor: isActive(link.path) ? blushLight : 'transparent',
