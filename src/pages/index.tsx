@@ -1,27 +1,17 @@
 /**
- * Home.tsx —  landing page
- *
- * Optimised for:
- *  • Lighthouse / Core Web Vitals (LCP, CLS, FCP, INP)
- *  • Google Search (structured data, canonical, OG, Twitter Card)
- *  • Accessibility (ARIA, heading hierarchy, keyboard nav, screen readers)
- *  • React 18 performance (memo, stable refs, no spurious re-renders)
+ * Home page — editorial atelier storefront.
+ * Product and category data are prerendered through ISR; SEO metadata remains
+ * managed through the existing site settings and structured data.
  */
 
 import { CustomerLayout } from '@/components/layout/CustomerLayout';
+import { AtelierStorefront } from '@/components/home/AtelierStorefront';
 import React, { useEffect, memo } from 'react';
 import { Link } from '@/lib/routerCompat';
 import Head from 'next/head';
 import type { GetStaticProps } from 'next';
 
-import {
-  Hero,
-  BannerSlider,
-  FeaturedCollection,
-  CategoryShowcase,
-  TrendingProducts,
-} from '@/components/home';
-import { FadeIn, SectionHeader, PriceDisplay } from '@/components/ui';
+import { FadeIn, PriceDisplay } from '@/components/ui';
 import { useProductStore } from '@/store';
 import { rowToProduct, PRODUCT_LIST_COLUMNS } from '@/store/productStore';
 import { rowToCategory } from '@/store/categoryStore';
@@ -375,7 +365,7 @@ export const HomePage: React.FC<PageInitialData> = ({
           theme-color: used by Chrome / Edge on Android to colour the
           browser chrome, improving perceived brand quality.
         */}
-        <meta name="theme-color" content={BRAND.colors.primary} />
+        <meta name="theme-color" content="#0e0b09" />
 
         {/* ── Canonical ─────────────────────────────────────────────────── */}
         <link rel="canonical" href={CANONICAL} />
@@ -432,41 +422,21 @@ export const HomePage: React.FC<PageInitialData> = ({
         <script type="application/ld+json">{BUSINESS_SCHEMA_STR}</script>
       </Head>
 
-      {/*
-        Invisible H1 fallback — ONLY when the Hero is disabled. The Hero
-        renders its own <h1> (heroTitle) when enabled, so rendering this
-        unconditionally produced two h1 elements on the page.
-      */}
-      {!content.heroEnabled && (
-        <h1 className="sr-only">
-          {BRAND.fullName} — Premium Women&apos;s Fashion Bangladesh
-        </h1>
-      )}
-
-      {/*
-        Render order is intentional for Core Web Vitals:
-          1. Hero        — LCP candidate; above-fold; image has fetchPriority="high"
-          2. BannerSlider— above-fold promotional content
-          3. TrendingProducts
-          4. FeaturedCollection
-          5. CategoryShowcase
-          6. RecentlyViewedProducts — personalised; lazy-loaded images only
-      */}
-      <main id="main-content">
-        <Hero initialContent={initialContent} />
-        <BannerSlider initialContent={initialContent} />
-        <TrendingProducts initialProducts={initialProducts} initialContent={initialContent} />
-        <FeaturedCollection initialProducts={initialProducts} initialContent={initialContent} />
-        <CategoryShowcase initialCategories={initialCategories} initialProducts={initialProducts} />
+      <AtelierStorefront
+        products={initialProducts ?? mockProducts}
+        categories={initialCategories ?? mockCategories}
+      >
+        <div className="atelier-recently-viewed">
         <RecentlyViewedProducts />
-      </main>
+        </div>
+      </AtelierStorefront>
     </>
   );
 };
 
 HomePage.getLayout = function getLayout(page: React.ReactElement, pageProps?: PageInitialData) {
   // Pass the ISR content down so the announcement bar is in the server HTML
-  return <CustomerLayout initialContent={pageProps?.initialContent}>{page}</CustomerLayout>;
+  return <CustomerLayout initialContent={pageProps?.initialContent} variant="atelier">{page}</CustomerLayout>;
 };
 
 // ─── ISR ──────────────────────────────────────────────────────────────────────

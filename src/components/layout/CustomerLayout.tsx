@@ -132,11 +132,13 @@ DefaultSEO.displayName = 'DefaultSEO';
 export const CustomerLayout = memo(({
   children,
   initialContent,
+  variant = 'standard',
 }: {
   children: ReactNode;
   /** ISR content for the page — lets the announcement bar render server-side
    *  instead of appearing a frame after hydration (whole-page CLS jump). */
   initialContent?: unknown;
+  variant?: 'standard' | 'atelier';
 }) => {
   const prerendered = usePrerenderedContent(initialContent as ContentData | null | undefined);
   const announcement = prerendered.announcement;
@@ -157,20 +159,22 @@ export const CustomerLayout = memo(({
       </a>
 
       {/* Announcement bar sits above nav — renders only when active */}
-      {barVisible && <AnnouncementBar />}
+      {variant === 'standard' && barVisible && <AnnouncementBar />}
 
-      <Navbar barVisible={barVisible} />
+      {variant === 'standard' && <Navbar barVisible={barVisible} />}
 
       <main
         id="main-content"
         role="main"
         tabIndex={-1}
-        className={`min-h-screen ${barVisible ? 'pt-[100px] md:pt-[108px]' : 'pt-16 md:pt-[68px]'}`}
+        className={variant === 'atelier'
+          ? 'atelier-layout-main min-h-screen'
+          : `min-h-screen ${barVisible ? 'pt-[100px] md:pt-[108px]' : 'pt-16 md:pt-[68px]'}`}
       >
         {children}
       </main>
 
-      <Footer />
+      {variant === 'standard' && <Footer />}
       <CustomerFloatingChatbox />
     </>
   );
