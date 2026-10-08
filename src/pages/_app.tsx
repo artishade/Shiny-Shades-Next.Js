@@ -11,6 +11,7 @@ import Script from 'next/script';
 import { LazyMotion, domAnimation } from 'framer-motion';
 import '@/index.css';
 import '@/styles/atelier-storefront.css';
+import '@/styles/template.css';
 
 import type { AppPropsWithLayout, PageInitialData } from '@/types/layout';
 import { useContentStore } from '@/store/contentStore';
