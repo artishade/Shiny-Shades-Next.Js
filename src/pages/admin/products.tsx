@@ -12,8 +12,9 @@ import { uploadToCloudinary, getOptimizedImageUrl } from '@/lib/cloudinary';
 import { SIMPLE_COLORS } from '@/lib/simpleColors';
 import { BRAND } from '@/config/brandingConfig';
 import React, { useEffect, useRef, useState } from 'react';
-import { Plus, Edit2, Trash2, Search, X, RefreshCw, Sparkles, Download } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, X, RefreshCw, Sparkles, Download, FileSpreadsheet } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
+import { utils as xlsxUtils, write as xlsxWrite } from 'xlsx';
 import { Button, Input, Select, Badge, Modal } from '@/components/ui';
 import { useProductStore, useCategoryStore } from '@/store';
 import type { Product } from '@/types';
@@ -939,6 +940,78 @@ export const AdminProducts: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  // ───────────────────────────────────────────────────────
+  // XLSX EXPORT — same format as the uploaded template
+  // ───────────────────────────────────────────────────────
+  const exportSelectedXlsx = () => {
+    const toExport = selectedIds.size > 0
+      ? products.filter((p: Product) => selectedIds.has(p.id))
+      : [];
+
+    if (toExport.length === 0) {
+      alert('Select at least one product to download XLSX.');
+      return;
+    }
+
+    // Build rows matching the upload template column order
+    const headers = [
+      'ID', 'Name', 'SKU', 'Slug', 'Category', 'Price', 'Compare Price', 'Stock',
+      'Sizes', 'Colors', 'Tags', 'Featured', 'Trending', 'New Arrival', 'On Sale',
+      'Rating', 'Review Count', 'Short Description', 'Description', 'Images', 'Video URL',
+      'SEO Title', 'SEO Keywords', 'Created At', 'Updated At',
+    ];
+
+    const rows = toExport.map((p: Product) => [
+      p.id,
+      p.name,
+      p.sku,
+      p.slug,
+      p.category,
+      p.price,
+      p.comparePrice ?? '',
+      p.stock,
+      Array.isArray(p.sizes) ? p.sizes.join(', ') : (p.sizes || ''),
+      // Colors may be objects {name, hex} or strings
+      Array.isArray(p.colors)
+        ? p.colors.map((c: any) => (typeof c === 'string' ? c : (c?.label || c?.name || c?.hex || String(c)))).join(', ')
+        : (p.colors || ''),
+      Array.isArray(p.tags) ? p.tags.join(', ') : (p.tags || ''),
+      p.isFeatured ? 'Yes' : 'No',
+      p.isTrending ? 'Yes' : 'No',
+      p.isNewArrival ? 'Yes' : 'No',
+      p.isOnSale ? 'Yes' : 'No',
+      p.rating ?? 0,
+      p.reviewCount ?? 0,
+      p.shortDescription || '',
+      p.description || '',
+      Array.isArray(p.images) ? p.images.join(' | ') : (p.images || ''),
+      p.videoUrl || '',
+      p.seoTitle || '',
+      p.seoKeywords || '',
+      p.createdAt || '',
+      p.updatedAt || '',
+    ]);
+
+    // Convert to XLSX worksheet
+    const ws = xlsxUtils.aoa_to_sheet([headers, ...rows]);
+    const wb = xlsxUtils.book_new();
+    xlsxUtils.book_append_sheet(wb, ws, 'Products');
+
+    // Generate workbook and trigger download
+    const wbout = xlsxWrite(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `products-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
 
   const resetModal = () => {
     // Load the last-used watermark settings so the next upload
@@ -1267,6 +1340,15 @@ export const AdminProducts: React.FC = () => {
             title={selectedIds.size === 0 ? 'Select products to download CSV' : `Download ${selectedIds.size} selected product(s) as CSV`}
           >
             <Download size={16} /> Download CSV{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
+          </Button>
+          <Button
+            variant="outline"
+            size="md"
+            onClick={exportSelectedXlsx}
+            disabled={selectedIds.size === 0}
+            title={selectedIds.size === 0 ? 'Select products to download XLSX' : `Download ${selectedIds.size} selected product(s) as XLSX`}
+          >
+            <FileSpreadsheet size={16} /> Download XLSX{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
           </Button>
           <Button onClick={openAdd}><Plus size={16} /> Add Product</Button>
         </div>
