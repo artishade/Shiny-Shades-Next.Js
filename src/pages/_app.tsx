@@ -9,6 +9,7 @@ import {
 import { useRouter } from 'next/router';
 import Script from 'next/script';
 import { LazyMotion, domAnimation } from 'framer-motion';
+import { Analytics } from '@vercel/analytics/next';
 import '@/index.css';
 
 import type { AppPropsWithLayout, PageInitialData } from '@/types/layout';
@@ -264,6 +265,7 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
           {layoutPage}
         </AppBoot>
       </LazyMotion>
+      <Analytics />
     </ErrorBoundary>
   );
 }
