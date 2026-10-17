@@ -17,6 +17,9 @@
  *     topPages: [{ pathname, count }],
  *     browserBreakdown: [{ browser, count, percentage }],
  *   }
+ *
+ * Gracefully returns empty data if the visitors/page_views tables haven't
+ * been created yet (migration 011 not applied).
  */
 
 const { requireAdmin } = require('./_lib/requireAdmin.js');
@@ -36,6 +39,43 @@ module.exports = async function handler(req, res) {
 
     try {
         const { supabase } = auth;
+
+        // ── Check if tables exist (migration 011 may not have been applied) ──
+        // We catch the "relation does not exist" error and return empty data
+        // instead of crashing the admin page.
+        let tableCheck = true;
+        try {
+            const { error: checkErr } = await supabase
+                .from('visitors')
+                .select('id', { count: 'exact', head: true })
+                .limit(1);
+
+            if (checkErr && checkErr.code === 'PGRST116') {
+                // PGRST116 = no rows — but the table DOES exist
+            } else if (checkErr && checkErr.message?.includes('relation') && checkErr.message?.includes('does not exist')) {
+                tableCheck = false;
+            } else if (checkErr && checkErr.code === '42P01') {
+                // 42P01 = undefined_table
+                tableCheck = false;
+            }
+        } catch (err) {
+            tableCheck = false;
+        }
+
+        // If tables don't exist, return empty analytics data
+        if (!tableCheck) {
+            return res.status(200).json({
+                totalVisitors: 0,
+                totalPageViews: 0,
+                visitorsOverTime: buildEmptyTimeSeries(days),
+                deviceBreakdown: [],
+                topCountries: [],
+                topPages: [],
+                browserBreakdown: [],
+                days,
+                warning: 'Analytics tables not yet created. Apply migration 011_create_visitors_table.sql.',
+            });
+        }
 
         // ── Total unique visitors in range ──
         const { count: totalVisitors, error: vErr } = await supabase
@@ -60,119 +100,59 @@ module.exports = async function handler(req, res) {
             .gte('first_seen', since)
             .order('first_seen', { ascending: true });
 
-        // Aggregate into daily buckets client-side (Supabase doesn't support DATE_TRUNC in select)
+        // Aggregate into daily buckets
         const dailyMap = {};
         (timeData || []).forEach((row) => {
             const date = row.first_seen.slice(0, 10); // YYYY-MM-DD
             dailyMap[date] = (dailyMap[date] || 0) + 1;
         });
 
-        // Fill in missing days with 0
-        const visitorsOverTime = [];
-        for (let i = days - 1; i >= 0; i--) {
-            const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-            const dateStr = d.toISOString().slice(0, 10);
-            visitorsOverTime.push({
-                date: dateStr,
-                count: dailyMap[dateStr] || 0,
-            });
-        }
-
-        if (timeErr) {
-            console.error('[admin-analytics] time series error:', timeErr);
-        }
+        const visitorsOverTime = buildTimeSeries(days, dailyMap);
 
         // ── Device breakdown ──
-        const { data: deviceData, error: deviceErr } = await supabase
+        const { data: deviceData } = await supabase
             .from('visitors')
             .select('device_type')
             .gte('last_seen', since);
 
-        const deviceCounts = {};
-        (deviceData || []).forEach((row) => {
-            const key = row.device_type || 'unknown';
-            deviceCounts[key] = (deviceCounts[key] || 0) + 1;
-        });
-        const deviceTotal = Object.values(deviceCounts).reduce((a, b) => a + b, 0) || 1;
-        const deviceBreakdown = Object.entries(deviceCounts)
-            .map(([deviceType, count]) => ({
-                device_type: deviceType,
-                count: Number(count),
-                percentage: Math.round((Number(count) / deviceTotal) * 100),
-            }))
-            .sort((a, b) => b.count - a.count);
-
-        if (deviceErr) console.error('[admin-analytics] device error:', deviceErr);
+        const deviceBreakdown = aggregateBreakdown(
+            (deviceData || []).map((r) => r.device_type || 'unknown')
+        );
 
         // ── Top countries ──
-        const { data: countryData, error: countryErr } = await supabase
+        const { data: countryData } = await supabase
             .from('visitors')
             .select('country')
             .gte('last_seen', since)
             .not('country', 'is', null);
 
-        const countryCounts = {};
-        (countryData || []).forEach((row) => {
-            const key = row.country || 'Unknown';
-            countryCounts[key] = (countryCounts[key] || 0) + 1;
-        });
-        const countryTotal = Object.values(countryCounts).reduce((a, b) => a + b, 0) || 1;
-        const topCountries = Object.entries(countryCounts)
-            .map(([country, count]) => ({
-                country,
-                count: Number(count),
-                percentage: Math.round((Number(count) / countryTotal) * 100),
-            }))
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 10);
-
-        if (countryErr) console.error('[admin-analytics] country error:', countryErr);
+        const topCountries = aggregateBreakdown(
+            (countryData || []).map((r) => r.country || 'Unknown'),
+            10
+        );
 
         // ── Top pages ──
-        const { data: pageData, error: pageErr } = await supabase
+        const { data: pageData } = await supabase
             .from('page_views')
             .select('pathname')
             .gte('created_at', since);
 
-        const pageCounts = {};
-        (pageData || []).forEach((row) => {
-            const key = row.pathname || '/';
-            pageCounts[key] = (pageCounts[key] || 0) + 1;
-        });
-        const pageTotal = Object.values(pageCounts).reduce((a, b) => a + b, 0) || 1;
-        const topPages = Object.entries(pageCounts)
-            .map(([pathname, count]) => ({
-                pathname,
-                count: Number(count),
-                percentage: Math.round((Number(count) / pageTotal) * 100),
-            }))
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 10);
-
-        if (pageErr) console.error('[admin-analytics] pages error:', pageErr);
+        const topPages = aggregateBreakdown(
+            (pageData || []).map((r) => r.pathname || '/'),
+            10
+        );
 
         // ── Browser breakdown ──
-        const { data: browserData, error: browserErr } = await supabase
+        const { data: browserData } = await supabase
             .from('visitors')
             .select('browser')
             .gte('last_seen', since)
             .not('browser', 'is', null);
 
-        const browserCounts = {};
-        (browserData || []).forEach((row) => {
-            const key = row.browser || 'Unknown';
-            browserCounts[key] = (browserCounts[key] || 0) + 1;
-        });
-        const browserTotal = Object.values(browserCounts).reduce((a, b) => a + b, 0) || 1;
-        const browserBreakdown = Object.entries(browserCounts)
-            .map(([browser, count]) => ({
-                browser,
-                count: Number(count),
-                percentage: Math.round((Number(count) / browserTotal) * 100),
-            }))
-            .sort((a, b) => b.count - a.count);
-
-        if (browserErr) console.error('[admin-analytics] browser error:', browserErr);
+        const browserBreakdown = aggregateBreakdown(
+            (browserData || []).map((r) => r.browser || 'Unknown'),
+            10
+        );
 
         return res.status(200).json({
             totalVisitors: totalVisitors || 0,
@@ -182,9 +162,83 @@ module.exports = async function handler(req, res) {
             topCountries,
             topPages,
             browserBreakdown,
+            days,
         });
     } catch (err) {
         console.error('[admin-analytics]', err);
+
+        // If the error is about missing tables, return empty data
+        if (err.message?.includes('relation') && err.message?.includes('does not exist')) {
+            return res.status(200).json({
+                totalVisitors: 0,
+                totalPageViews: 0,
+                visitorsOverTime: buildEmptyTimeSeries(days),
+                deviceBreakdown: [],
+                topCountries: [],
+                topPages: [],
+                browserBreakdown: [],
+                days,
+                warning: 'Analytics tables not yet created. Apply migration 011.',
+            });
+        }
+
         return res.status(500).json({ error: 'Failed to load analytics data.' });
     }
 };
+
+// ─── Helpers ───────────────────────────────────────────────────────────
+
+/**
+ * Builds a time series with `days` entries, filling from the daily map.
+ */
+function buildTimeSeries(days, dailyMap) {
+    const result = [];
+    for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+        const dateStr = d.toISOString().slice(0, 10);
+        result.push({
+            date: dateStr,
+            count: dailyMap[dateStr] || 0,
+        });
+    }
+    return result;
+}
+
+/**
+ * Builds an empty time series (for when tables don't exist yet).
+ */
+function buildEmptyTimeSeries(days) {
+    const result = [];
+    for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+        result.push({
+            date: d.toISOString().slice(0, 10),
+            count: 0,
+        });
+    }
+    return result;
+}
+
+/**
+ * Aggregates an array of string values into count + percentage buckets.
+ * Returns a name/count/percentage array (sorted by count descending).
+ */
+function aggregateBreakdown(values, limit = 0) {
+    const counts = {};
+    values.forEach((v) => {
+        counts[v] = (counts[v] || 0) + 1;
+    });
+
+    const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
+    const result = Object.entries(counts)
+        .map(([name, count]) => ({
+            name: name,
+            count: Number(count),
+            percentage: Math.round((Number(count) / total) * 100),
+        }))
+        .sort((a, b) => b.count - a.count);
+
+    if (limit > 0) result = result.slice(0, limit);
+
+    return result;
+}

@@ -461,7 +461,7 @@ function countryToIso(country: string): string | null {
     'netherlands': 'NL',
     'belgium': 'BE',
     'switzerland': 'CH',
-    'swe': 'SE',
+    'sweden': 'SE',
     'norway': 'NO',
     'denmark': 'DK',
     'finland': 'FI',
