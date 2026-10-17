@@ -119,6 +119,7 @@ export interface ContentData {
   // heroImageUrl when empty, so this is fully backward compatible.
   heroImageUrlMobile?: string;
   heroLayout?: HeroLayout;
+  heroBodyText?: string;
   newArrivalsSection: NewArrivalsSection;
   heroExtraComponents?: HeroExtraComponent[];
 
@@ -202,6 +203,7 @@ export const defaultContent: ContentData = {
   heroButtonText: 'Shop Now',
   heroImageUrl: '',
   heroImageUrlMobile: '',
+  heroBodyText: 'Discover timeless pieces that match your mood, your moments, and your unique you.',
 
   newArrivalsSection: {
     title: 'New Arrivals',
@@ -248,6 +250,7 @@ const blankContent: ContentData = {
   heroTitle: '',
   heroSubtitle: '',
   heroButtonText: '',
+  heroBodyText: '',
 
   newArrivalsSection: {
     ...defaultContent.newArrivalsSection,

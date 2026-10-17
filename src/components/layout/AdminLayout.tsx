@@ -8,7 +8,8 @@ import { Link, useLocation, useNavigate } from '@/lib/routerCompat';
 import { m as motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Package, FolderOpen, ShoppingCart, Users,
-  FileText, Ticket, BarChart3, AlertTriangle, LogOut, Menu, KeyRound, Sparkles, PenLine
+  FileText, Ticket, BarChart3, AlertTriangle, LogOut, Menu, KeyRound, Sparkles, PenLine,
+  TrendingUp
 } from 'lucide-react';
 import { useAdminAuthStore } from '@/store';
 import { BRAND } from '@/config/brandingConfig';
@@ -23,6 +24,7 @@ const sidebarItems = [
   { label: 'Coupons', path: '/admin/coupons', icon: Ticket },
   { label: 'Inventory', path: '/admin/inventory', icon: AlertTriangle },
   { label: 'Reports', path: '/admin/reports', icon: BarChart3 },
+  { label: 'Analytics', path: '/admin/analytics', icon: TrendingUp },
   { label: 'AI Chat', path: '/admin/ai-chat', icon: Sparkles },
   { label: 'AI Prompts', path: '/admin/ai-prompts', icon: PenLine },
   { label: 'API Keys', path: '/admin/api-keys', icon: KeyRound },

@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Shiny Shades — Homepage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600&family=Pacifico&display=swap" rel="stylesheet" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --pale-pink: #f3d3cb;
+    --deep-charcoal: #2a2a2a;
+    --soft-white: #faf7f2;
+    --muted-gray: #8a8178;
+    --overlay-dark: rgba(15, 12, 10, 0.55);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Montserrat', system-ui, sans-serif;
+    background: var(--soft-white);
+    color: var(--deep-charcoal);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ===== NAVBAR ===== */
+  .navbar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    padding: 1.4rem 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--overlay-dark);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .nav-left { display: flex; flex-direction: column; gap: 0.25rem; }
+
+  .logo {
+    font-family: 'Pacifico', cursive;
+    font-size: 1.85rem;
+    color: #fff;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .logo-star {
+    width: 14px; height: 14px;
+    background: transparent;
+    border: 1.5px solid #fff;
+    border-radius: 50% 0;
+    position: relative;
+    display: inline-block;
+  }
+  .logo-star::before, .logo-star::after {
+    content: '';
+    position: absolute;
+    background: transparent;
+    border: 1.5px solid #fff;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .logo-star::before { width: 14px; height: 4px; }
+  .logo-star::after  { width: 4px;  height: 14px; }
+
+  .tagline {
+    font-size: 0.55rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.65);
+    font-weight: 500;
+  }
+
+  .nav-center {
+    display: flex;
+    gap: 2.4rem;
+    align-items: center;
+  }
+
+  .nav-link {
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.85);
+    text-decoration: none;
+    font-weight: 400;
+    position: relative;
+    padding-bottom: 2px;
+    transition: color 0.3s;
+  }
+  .nav-link:hover { color: #fff; }
+  .nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%; height: 1.5px;
+    background: #fff;
+  }
+
+  .nav-right { display: flex; gap: 1.2rem; align-items: center; }
+
+  .icon-btn {
+    width: 38px; height: 38px;
+    border: 1px solid rgba(255,255,255,0.45);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+  }
+  .icon-btn:hover {
+    border-color: #fff;
+    background: rgba(255,255,255,0.08);
+  }
+  .icon-btn svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 1.7; }
+
+  .badge {
+    position: absolute;
+    top: -4px; right: -4px;
+    width: 16px; height: 16px;
+    background: var(--pale-pink);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.5rem;
+    font-weight: 600;
+    color: var(--deep-charcoal);
+  }
+
+  /* ===== HERO ===== */
+  .hero {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    min-height: 640px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 45% 30%;
+    filter: brightness(0.72);
+    transition: filter 0.4s;
+  }
+
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(15,12,10,0.6) 0%,
+      rgba(15,12,10,0.15) 55%,
+      rgba(15,12,10,0.5) 100%
+    );
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 3rem;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 3rem;
+  }
+
+  .hero-left {
+    flex: 1;
+    max-width: 580px;
+    animation: fadeUp 1s 0.2s both;
+  }
+
+  .eyebrow {
+    font-size: 0.6rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+    font-weight: 500;
+    margin-bottom: 1.1rem;
+    display: block;
+  }
+
+  .hero-headline {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(3rem, 6vw, 5.2rem);
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.08;
+    margin-bottom: 0.2rem;
+    letter-spacing: -0.01em;
+  }
+
+  .hero-headline .script {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 0.72em;
+    color: var(--pale-pink);
+    display: block;
+    margin-top: 0.15em;
+    letter-spacing: 0.01em;
+  }
+
+  .hero-body {
+    margin-top: 1.3rem;
+    font-size: 0.88rem;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.82);
+    max-width: 420px;
+    font-weight: 300;
+    letter-spacing: 0.01em;
+  }
+
+  .hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 2rem;
+    padding: 0.85rem 2.2rem;
+    background: var(--pale-pink);
+    color: var(--deep-charcoal);
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 50px;
+    transition: all 0.3s;
+    box-shadow: 0 4px 14px rgba(243, 211, 203, 0.35);
+  }
+  .hero-cta:hover {
+    background: #fff;
+    color: var(--deep-charcoal);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(243, 211, 203, 0.45);
+  }
+  .hero-cta svg {
+    width: 15px; height: 15px;
+    transition: transform 0.3s;
+    stroke: var(--deep-charcoal);
+    fill: none;
+    stroke-width: 2;
+  }
+  .hero-cta:hover svg { transform: translateX(4px); }
+
+  /* ===== SCROLL INDICATOR ===== */
+  .scroll-indicator {
+    position: absolute;
+    right: 2.5rem;
+    bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    z-index: 3;
+    animation: fadeIn 0.8s 0.8s both;
+  }
+  .scroll-label {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-size: 0.55rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+    font-weight: 400;
+  }
+  .scroll-line {
+    width: 1px;
+    height: 48px;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.5), transparent);
+  }
+  .scroll-dot {
+    width: 5px; height: 5px;
+    background: rgba(255,255,255,0.6);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.3); }
+  }
+
+  /* ===== HANDWRITTEN TEXT ===== */
+  .handwritten {
+    position: absolute;
+    top: 8%;
+    right: 5%;
+    z-index: 3;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-size: 2.4rem;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 0.02em;
+    font-weight: 400;
+    animation: fadeIn 1s 0.5s both;
+  }
+  .handwritten-heart {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 1rem;
+    color: rgba(255,255,255,0.3);
+  }
+
+  /* ===== TORN PAPER BOTTOM ===== */
+  .torn-paper {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    z-index: 4;
+    background:
+      linear-gradient(180deg, transparent 0%, rgba(250,247,242,0.6) 15%, var(--soft-white) 100%),
+      repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 3px,
+        rgba(0,0,0,0.015) 3px,
+        rgba(0,0,0,0.015) 4px
+      );
+    clip-path: polygon(
+      0% 20%, 5% 15%, 10% 25%, 15% 10%, 20% 22%, 25% 12%, 30% 20%,
+      35% 8%,  40% 18%, 45% 12%, 50% 22%, 55% 10%, 60% 20%, 65% 14%,
+      70% 24%, 75% 11%, 80% 19%, 85% 13%, 90% 21%, 95% 9%,  100% 18%,
+      100% 100%, 0% 100%
+    );
+  }
+
+  /* ===== ANIMATIONS ===== */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(28px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 768px) {
+    .navbar { padding: 1rem 1.4rem; }
+    .nav-center { gap: 1.2rem; }
+    .nav-link { font-size: 0.6rem; letter-spacing: 0.12em; }
+    .nav-right { gap: 0.8rem; }
+    .logo { font-size: 1.4rem; }
+    .tagline { font-size: 0.48rem; }
+
+    .hero-content { padding: 0 1.4rem; flex-direction: column; gap: 2rem; }
+    .hero-left { max-width: 100%; text-align: center; }
+    .hero-body { max-width: 100%; margin-left: auto; margin-right: auto; }
+    .hero-cta { padding: 0.75rem 1.8rem; }
+    .handwritten { font-size: 1.4rem; top: 6%; right: 6%; }
+    .scroll-indicator { right: 1.2rem; bottom: 1.2rem; }
+    .torn-paper { height: 70px; }
+    .hero { min-height: 520px; }
+  }
+
+  @media (max-width: 480px) {
+    .navbar { padding: 0.8rem 1rem; }
+    .nav-center { gap: 0.8rem; }
+    .nav-right { gap: 0.6rem; }
+    .icon-btn { width: 32px; height: 32px; }
+    .icon-btn svg { width: 13px; height: 13px; }
+    .hero-content { padding: 0 1rem; gap: 1.5rem; }
+    .hero-headline { font-size: 2.6rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== NAVBAR ===== -->
+<nav class="navbar" aria-label="Main navigation">
+  <div class="nav-left">
+    <div class="logo">
+      Shiny Shades
+      <span class="logo-star" aria-hidden="true"></span>
+    </div>
+    <span class="tagline">WEAR YOUR STORY</span>
+  </div>
+
+  <div class="nav-center">
+    <a href="#" class="nav-link active">Home</a>
+    <a href="#" class="nav-link">Shop</a>
+    <a href="#" class="nav-link">Collections</a>
+    <a href="#" class="nav-link">About</a>
+    <a href="#" class="nav-link">Blog</a>
+    <a href="#" class="nav-link">Contact</a>
+  </div>
+
+  <div class="nav-right">
+    <button class="icon-btn" aria-label="Search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+    </button>
+    <button class="icon-btn" aria-label="Wishlist">
+      <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 6.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.4l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+    </button>
+    <button class="icon-btn" aria-label="Account">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>
+    </button>
+    <button class="icon-btn" aria-label="Cart">
+      <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      <span class="badge">0</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section class="hero" aria-label="Hero banner">
+
+  <!-- Background -->
+  <div class="hero-overlay" aria-hidden="true"></div>
+
+  <!-- Placeholder image (prod would use a real photo) -->
+  <img
+    class="hero-bg"
+    src="https://images.unsplash.com/photo-1594226801341-41427b4e5c48?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80"
+    alt=""
+    aria-hidden="true"
+    loading="eager"
+    fetchpriority="high"
+  />
+
+  <!-- Handwritten accent text -->
+  <div class="handwritten" aria-hidden="true">
+    Style Grace You
+    <span class="handwritten-heart">♥</span>
+  </div>
+
+  <!-- Content -->
+  <div class="hero-content">
+    <div class="hero-left">
+      <span class="eyebrow">More Than Just Clothes</span>
+
+      <h1 class="hero-headline">
+        A New Chapter
+        <span class="script">for Your Style</span>
+      </h1>
+
+      <p class="hero-body">
+        Discover timeless pieces that match your mood,<br />
+        your moments, and your unique you.
+      </p>
+
+      <a href="#" class="hero-cta">
+        Explore Collections
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5 12h14M13 6l6 6-6 6"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Scroll indicator -->
+  <div class="scroll-indicator" aria-hidden="true">
+    <span class="scroll-label">Scroll</span>
+    <div class="scroll-line"></div>
+    <div class="scroll-dot"></div>
+  </div>
+
+  <!-- Torn paper bottom edge -->
+  <div class="torn-paper" aria-hidden="true"></div>
+</section>
+
+</body>
+</html>

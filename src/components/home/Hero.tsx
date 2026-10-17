@@ -1,231 +1,305 @@
+/* ===================================================
+   Hero.tsx — Premium full-viewport hero banner
+   =================================================== */
+
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from '@/lib/routerCompat';
 import { m as motion } from 'framer-motion';
-import { ArrowRight, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui';
+import { ArrowRight } from 'lucide-react';
+import { useNavigate } from '@/lib/routerCompat';
 import { usePrerenderedContent, type ContentData } from '@/store/contentStore';
-import { DEFAULT_HERO_LAYOUT, type HeroPosition } from '@/lib/heroLayout';
+
+// ─── Helpers ────────────────────────────────────────────────────────────────────
+
+const buildSrcSet = (url: string): string | undefined => {
+  if (!url?.includes('cloudinary.com')) return undefined;
+  const marker = '/upload/';
+  const idx = url.indexOf(marker);
+  if (idx === -1) return undefined;
+  const base = url.slice(0, idx + marker.length);
+  const rest = url.slice(idx + marker.length);
+  const widths = [640, 1024, 1280, 1920];
+  return widths.map((w) => `${base}w_${w},q_auto,f_auto/${rest} ${w}w`).join(', ');
+};
+
+const optimizeUrl = (url: string, width: number): string => {
+  if (!url || !url.includes('cloudinary.com')) return url;
+  const marker = '/upload/';
+  const idx = url.indexOf(marker);
+  if (idx === -1) return url;
+  const base = url.slice(0, idx + marker.length);
+  const rest = url.slice(idx + marker.length);
+  return `${base}w_${width},q_auto,f_auto/${rest}`;
+};
+
+// ─── Hero Component ─────────────────────────────────────────────────────────────
 
 export const Hero: React.FC<{ initialContent?: ContentData | null }> = ({ initialContent }) => {
-    const navigate = useNavigate();
-    const content = usePrerenderedContent(initialContent);
+  const navigate = useNavigate();
+  const content = usePrerenderedContent(initialContent);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
-    // Hooks before any early return — reduced-motion is read in an effect,
-    // not during render: a render-time matchMedia makes the server (false)
-    // and a reduced-motion client (true) render different props, which is
-    // a hydration mismatch.
-    const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-    useEffect(() => {
-        const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-        setPrefersReducedMotion(mq.matches);
-        const onChange = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
-        mq.addEventListener('change', onChange);
-        return () => mq.removeEventListener('change', onChange);
-    }, []);
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
-    if (!content.heroEnabled) return null;
+  // Early return — Hero disabled
+  if (!content.heroEnabled) return null;
 
-    const hasImage = !!content.heroImageUrl;
+  const hasImage = !!content.heroImageUrl;
+  const hasMobileImage = !!content.heroImageUrlMobile;
 
-    // Components are only rendered when they have real text — clearing a
-    // field in the admin panel removes it from the live site entirely.
-    const hasTitle = !!content.heroTitle?.trim();
-    const hasSubtitle = !!content.heroSubtitle?.trim();
-    const hasButtons = !!content.heroButtonText?.trim();
-    const extraComponents = (content.heroExtraComponents ?? []).filter(
-        (c) => !!c.content?.trim()
-    );
-    const hasAnyComponent = hasTitle || hasSubtitle || hasButtons || extraComponents.length > 0;
+  // Content values (admin overrides, with sensible defaults)
+  const eyebrowText = 'More Than Just Clothes';
+  const titleText = content.heroTitle || 'A New Chapter';
+  const subtitleText = content.heroSubtitle || 'for Your Style';
+  const bodyText =
+    content.heroBodyText ||
+    'Discover timeless pieces that match your mood, your moments, and your unique you.';
+  const ctaText = content.heroButtonText || 'Explore Collections';
 
-    const layout = content.heroLayout ?? DEFAULT_HERO_LAYOUT;
+  const heroSrcSet = hasImage ? buildSrcSet(content.heroImageUrl) : undefined;
+  const heroSrc = hasImage ? optimizeUrl(content.heroImageUrl, 1280) : undefined;
+  const heroMobileSrc = hasMobileImage
+    ? optimizeUrl(content.heroImageUrlMobile!, 768)
+    : undefined;
+  const heroMobileSrcSet = hasMobileImage
+    ? buildSrcSet(content.heroImageUrlMobile!)
+    : undefined;
 
-    const buildSrcSet = (url: string): string | undefined => {
-        if (!url?.includes('cloudinary.com')) return undefined;
-        const marker = '/upload/';
-        const idx = url.indexOf(marker);
-        if (idx === -1) return undefined;
-        const base = url.slice(0, idx + marker.length);
-        const rest = url.slice(idx + marker.length);
-        const widths = [640, 1024, 1280, 1920];
-        return widths.map((w) => `${base}w_${w},q_auto,f_auto/${rest} ${w}w`).join(', ');
-    };
+  return (
+    <section
+      className="relative w-full min-h-screen flex items-center overflow-hidden"
+      style={{ minHeight: '100vh' }}
+    >
+      {/* ─── Background Image ───────────────────────────────────────────────── */}
+      {hasImage ? (
+        <picture className="absolute inset-0 w-full h-full">
+          {hasMobileImage && (
+            <source
+              media="(max-width: 767px)"
+              srcSet={heroMobileSrcSet || heroMobileSrc}
+              sizes="100vw"
+            />
+          )}
+          <img
+            src={heroSrc || content.heroImageUrl}
+            srcSet={heroSrcSet}
+            sizes="100vw"
+            alt=""
+            aria-hidden="true"
+            loading="eager"
+            fetchPriority="high"
+            decoding="sync"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ objectPosition: '45% 30%' }}
+          />
+        </picture>
+      ) : (
+        <div
+          className="absolute inset-0 hero-gradient"
+          aria-hidden="true"
+        />
+      )}
 
-    const heroSrcSet = hasImage ? buildSrcSet(content.heroImageUrl) : undefined;
-    const heroSizes = '100vw';
+      {/* ─── Gradient Overlay ───────────────────────────────────────────────── */}
+      <div
+        className="absolute inset-0"
+        aria-hidden="true"
+        style={{
+          background:
+            'linear-gradient(135deg, rgba(15,12,10,0.6) 0%, rgba(15,12,10,0.15) 55%, rgba(15,12,10,0.5) 100%)',
+        }}
+      />
 
-    const optimizeUrl = (url: string, width: number): string => {
-        if (!url.includes('cloudinary.com')) return url;
-        const marker = '/upload/';
-        const idx = url.indexOf(marker);
-        if (idx === -1) return url;
-        const base = url.slice(0, idx + marker.length);
-        const rest = url.slice(idx + marker.length);
-        return `${base}w_${width},q_auto,f_auto/${rest}`;
-    };
+      {/* ─── Handwritten Accent Text ────────────────────────────────────────── */}
+      <motion.div
+        className="absolute z-10"
+        style={{ top: '8%', right: '5%' }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: prefersReducedMotion ? 0 : 0.8, delay: 0.3 }}
+      >
+        <p className="font-serif italic text-2xl md:text-4xl text-white/45">
+          Style Grace You
+          <span className="block mt-1 text-base text-white/30">♥</span>
+        </p>
+      </motion.div>
 
-    const heroSrc = hasImage ? optimizeUrl(content.heroImageUrl, 1280) : undefined;
+      {/* ─── Main Content ───────────────────────────────────────────────────── */}
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-8 lg:px-12 py-8">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-16">
+          {/* Left Column — Headline Content */}
+          <motion.div
+            className="w-full lg:w-1/2 text-left"
+            initial={{ opacity: 0, y: 28 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: prefersReducedMotion ? 0 : 0.8,
+              delay: prefersReducedMotion ? 0 : 0.2,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+          >
+            {/* Eyebrow */}
+            <span
+              className="text-xs uppercase tracking-widest mb-4 block text-white/70"
+              style={{ letterSpacing: '0.28em' }}
+            >
+              {eyebrowText}
+            </span>
 
-    // Mobile crop is optional — falls back to the desktop image (with
-    // object-position adjusted below) when the admin hasn't uploaded one.
-    const hasMobileImage = !!content.heroImageUrlMobile;
-    const heroMobileSrc = hasMobileImage
-        ? optimizeUrl(content.heroImageUrlMobile!, 768)
-        : undefined;
-    const heroMobileSrcSet = hasMobileImage
-        ? buildSrcSet(content.heroImageUrlMobile!)
-        : undefined;
+            {/* Headline */}
+            <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-2">
+              {titleText}
+              <span
+                className="block font-normal italic"
+                style={{
+                  fontFamily: 'Georgia, serif',
+                  fontSize: '0.6em',
+                  lineHeight: 1.4,
+                  marginTop: '0.15em',
+                  color: '#F4C2C2',
+                }}
+              >
+                {subtitleText}
+              </span>
+            </h1>
 
-    // Converts a saved {x,y} percentage into absolute CSS positioning.
-    // translateY(-50%) keeps the drag handle's vertical center anchored
-    // to the dropped point, matching the admin builder's drag behavior.
-    const positionStyle = (pos: HeroPosition): React.CSSProperties => ({
-        position: 'absolute',
-        left: `${pos.x}%`,
-        top: `${pos.y}%`,
-        transform: 'translateY(-50%)',
-    });
+            {/* Body Text */}
+            <p
+              className="mt-6 text-base md:text-lg max-w-md"
+              style={{
+                color: 'rgba(255,255,255,0.82)',
+                fontWeight: 300,
+                lineHeight: 1.7,
+              }}
+            >
+              {bodyText}
+            </p>
 
-    return (
-        <section
-            aria-label="Hero banner"
-            className="relative min-h-[40vh] md:min-h-[50vh] flex items-center overflow-hidden"
-        >
-            {/* Background: image or gradient */}
-            {hasImage ? (
-                <picture>
-                    {/* Dedicated mobile crop, when the admin has uploaded one */}
-                    {hasMobileImage && (
-                        <source
-                            media="(max-width: 767px)"
-                            srcSet={heroMobileSrcSet || heroMobileSrc}
-                            sizes={heroSizes}
-                        />
-                    )}
-                    <img
-                        src={heroSrc}
-                        srcSet={heroSrcSet}
-                        sizes={heroSizes}
-                        alt=""
-                        aria-hidden="true"
-                        loading="eager"
-                        fetchPriority="high"
-                        decoding="sync"
-                        width={1920}
-                        height={1080}
-                        /*
-                          Without a dedicated mobile image, a wide desktop banner
-                          (16/7) gets center-cropped hard on narrow screens.
-                          object-position shifts the visible window up slightly
-                          so key subjects near the top of the banner aren't lost —
-                          purely a fallback; uploading a mobile crop above is the
-                          real fix for badly-cropped subjects.
-                        */
-                        className={`absolute inset-0 w-full h-full object-cover ${hasMobileImage ? 'object-center' : 'object-center md:object-center'
-                            }`}
-                        style={!hasMobileImage ? { objectPosition: '50% 30%' } : undefined}
-                    />
-                </picture>
-            ) : (
-                <div className="absolute inset-0 hero-gradient" aria-hidden="true" />
-            )}
+            {/* CTA Button */}
+            <motion.div
+              className="mt-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.6, delay: 0.4 }}
+            >
+              <button
+                onClick={() => navigate('/shop')}
+                className="inline-flex items-center gap-2 px-8 py-3.5 text-xs uppercase font-semibold transition-all duration-300 ease-out"
+                style={{
+                  backgroundColor: '#F4C2C2',
+                  color: '#2a2a2a',
+                  borderRadius: '50px',
+                  boxShadow: '0 4px 14px rgba(243, 211, 203, 0.35)',
+                  letterSpacing: '0.16em',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#ffffff';
+                  e.currentTarget.style.boxShadow =
+                    '0 8px 24px rgba(243, 211, 203, 0.45)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#F4C2C2';
+                  e.currentTarget.style.boxShadow =
+                    '0 4px 14px rgba(243, 211, 203, 0.35)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                {ctaText}
+                <ArrowRight size={14} style={{ color: '#2a2a2a' }} />
+              </button>
+            </motion.div>
+          </motion.div>
 
-            {!hasImage && (
-                <div className="absolute inset-0" aria-hidden="true">
-                    <motion.div
-                        animate={prefersReducedMotion ? {} : { y: [0, -20, 0], rotate: [0, 5, 0] }}
-                        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-                        className="absolute top-10 right-[10%] w-40 h-40 rounded-full bg-white/10 backdrop-blur-sm"
-                    />
-                    <motion.div
-                        animate={prefersReducedMotion ? {} : { y: [0, 15, 0], rotate: [0, -3, 0] }}
-                        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-                        className="absolute bottom-10 left-[5%] w-32 h-32 rounded-full bg-white/10 backdrop-blur-sm"
-                    />
-                </div>
-            )}
+          {/* Right Column — Scroll Indicator */}
+          <motion.div
+            className="flex flex-col items-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.8, delay: 0.6 }}
+          >
+            <span
+              className="text-xs uppercase mb-3 text-white/50"
+              style={{
+                letterSpacing: '0.3em',
+                writingMode: 'vertical-rl',
+                textOrientation: 'mixed',
+              }}
+            >
+              Scroll
+            </span>
+            <div
+              className="w-px h-48 mb-3"
+              style={{
+                background:
+                  'linear-gradient(to bottom, rgba(255,255,255,0.5), transparent)',
+              }}
+            />
+            <div
+              className="w-1.5 h-1.5 rounded-full"
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.6)',
+                animation: 'pulse 2s ease-in-out infinite',
+              }}
+            />
+          </motion.div>
+        </div>
+      </div>
 
-            {!hasAnyComponent ? null : (
-                <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 w-full">
-                    <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/30 backdrop-blur-sm text-sm font-medium text-charcoal mb-4">
-                        <Sparkles size={14} className="text-rose-gold" aria-hidden="true" />
-                    </span>
+      {/* ─── Torn Paper Bottom Edge ─────────────────────────────────────────── */}
+      <div
+        className="absolute bottom-0 left-0 right-0"
+        style={{
+          height: '96px',
+          zIndex: 4,
+          background: `
+            linear-gradient(180deg, transparent 0%, rgba(250,247,242,0.6) 15%, #faf7f2 100%),
+            repeating-linear-gradient(
+              90deg,
+              transparent 0px,
+              transparent 3px,
+              rgba(0,0,0,0.015) 3px,
+              rgba(0,0,0,0.015) 4px
+            )
+          `,
+          clipPath:
+            'polygon(0% 20%, 5% 15%, 10% 25%, 15% 10%, 20% 22%, 25% 12%, 30% 20%, 35% 8%, 40% 18%, 45% 12%, 50% 22%, 55% 10%, 60% 20%, 65% 14%, 70% 24%, 75% 11%, 80% 19%, 85% 13%, 90% 21%, 95% 9%, 100% 18%, 100% 100%, 0% 100%)',
+        }}
+        aria-hidden="true"
+      />
 
-                    {/* Free-positioning canvas — children are placed by % coordinates
-                        set in the admin panel's drag-and-drop builder. */}
-                    <div className="relative w-full h-56 sm:h-64 md:h-72 lg:h-80">
-                        {hasTitle && (
-                            <motion.h1
-                                initial={{ opacity: 0, y: 30 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: prefersReducedMotion ? 0 : 0.8, delay: prefersReducedMotion ? 0 : 0.15 }}
-                                style={positionStyle(layout.title)}
-                                className={`heading-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] max-w-xl ${hasImage ? 'text-white drop-shadow-lg' : 'text-charcoal'
-                                    }`}
-                            >
-                                {content.heroTitle}
-                            </motion.h1>
-                        )}
+      {/* ─── CSS Keyframes ─────────────────────────────────────────────────── */}
+      <style jsx>{`
+        @keyframes pulse {
+          0%,
+          100% {
+            opacity: 0.4;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.3);
+          }
+        }
+      `}</style>
 
-                        {hasSubtitle && (
-                            <motion.p
-                                initial={{ opacity: 0, y: 30 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: prefersReducedMotion ? 0 : 0.8, delay: prefersReducedMotion ? 0 : 0.3 }}
-                                style={positionStyle(layout.subtitle)}
-                                className={`text-sm md:text-base max-w-lg leading-relaxed ${hasImage ? 'text-white/90 drop-shadow' : 'text-[#6B5B55]'
-                                    }`}
-                            >
-                                {content.heroSubtitle}
-                            </motion.p>
-                        )}
-
-                        {hasButtons && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 30 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: prefersReducedMotion ? 0 : 0.8, delay: prefersReducedMotion ? 0 : 0.45 }}
-                                style={positionStyle(layout.buttons)}
-                                className="flex flex-wrap gap-3"
-                            >
-                                <Button
-                                    size="md"
-                                    onClick={() => navigate('/shop')}
-                                    aria-label={content.heroButtonText || 'Shop now'}
-                                >
-                                    {content.heroButtonText}
-                                    <ArrowRight size={16} aria-hidden="true" />
-                                </Button>
-                            </motion.div>
-                        )}
-
-                        {extraComponents.map((comp) => (
-                            <motion.div
-                                key={comp.id}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                style={positionStyle(comp.position)}
-                                className="max-w-sm"
-                            >
-                                {comp.type === 'button' ? (
-                                    <Button
-                                        size="md"
-                                        onClick={() => comp.link && navigate(comp.link)}
-                                    >
-                                        {comp.content}
-                                    </Button>
-                                ) : (
-                                    <p
-                                        className={`text-sm md:text-base leading-relaxed ${hasImage ? 'text-white drop-shadow' : 'text-charcoal'
-                                            }`}
-                                    >
-                                        {comp.content}
-                                    </p>
-                                )}
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-            )}
-        </section>
-    );
+      <style jsx global>{`
+        @media (max-width: 768px) {
+          .hero-content {
+            padding: 0 1.4rem;
+          }
+        }
+        @media (max-width: 480px) {
+          .hero-headline {
+            font-size: 2.6rem;
+          }
+        }
+      `}</style>
+    </section>
+  );
 };

@@ -24,6 +24,17 @@ export { useCategoryStore } from './categoryStore';
 export { useOrderStore } from './orderStore';
 export type { RealOrder, OrderCustomer, OrderItem } from './orderStore';
 
+// ── Analytics (server-fetched, not persisted) ────────────────────────────────
+export { useAnalyticsStore } from './analyticsStore';
+export type {
+  AnalyticsData,
+  VisitorsOverTime,
+  DeviceBreakdown,
+  CountryData,
+  PageData,
+  BrowserBreakdown,
+} from './analyticsStore';
+
 // ── Content store (re-exported as-is) ───────────────────────────────────────
 export { useContentStore, defaultContent } from './contentStore';
 export type { ContentData, Banner, AnnouncementSettings } from './contentStore';

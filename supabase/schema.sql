@@ -237,6 +237,38 @@ CREATE TABLE IF NOT EXISTS stock_alerts (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- ===== VISITORS TABLE (Analytics) =====
+-- One row per unique browser, identified by a UUID cookie.
+CREATE TABLE IF NOT EXISTS visitors (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  visitor_id UUID NOT NULL,
+  user_agent TEXT,
+  device_type TEXT CHECK (device_type IN ('mobile', 'tablet', 'desktop')),
+  os TEXT,
+  browser TEXT,
+  country TEXT,
+  city TEXT,
+  continent TEXT,
+  ip_hash TEXT,
+  first_seen TIMESTAMPTZ DEFAULT NOW(),
+  last_seen TIMESTAMPTZ DEFAULT NOW(),
+  total_page_views INTEGER DEFAULT 0
+);
+
+-- ===== PAGE VIEWS TABLE (Analytics) =====
+CREATE TABLE IF NOT EXISTS page_views (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  visitor_id UUID NOT NULL,
+  pathname TEXT NOT NULL,
+  referrer TEXT,
+  utm_source TEXT,
+  utm_medium TEXT,
+  utm_campaign TEXT,
+  consent_analytics BOOLEAN DEFAULT FALSE,
+  consent_marketing BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ==========================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
 -- ==========================================
@@ -257,6 +289,14 @@ ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wishlist ENABLE ROW LEVEL SECURITY;
 ALTER TABLE homepage_content ENABLE ROW LEVEL SECURITY;
 ALTER TABLE banners ENABLE ROW LEVEL SECURITY;
+ALTER TABLE visitors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE page_views ENABLE ROW LEVEL SECURITY;
+
+-- Analytics access — only admins can read visitor data
+CREATE POLICY "Admins can read visitors" ON visitors FOR SELECT USING (is_admin());
+CREATE POLICY "Admins can read page_views" ON page_views FOR SELECT USING (is_admin());
+CREATE POLICY "Service role can insert visitors" ON visitors FOR INSERT WITH CHECK (true);
+CREATE POLICY "Service role can insert page_views" ON page_views FOR INSERT WITH CHECK (true);
 
 -- Public read access for products, categories, reviews
 CREATE POLICY "Public can view active products" ON products FOR SELECT USING (is_active = TRUE);
@@ -313,6 +353,11 @@ CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews(product_id);
+CREATE INDEX IF NOT EXISTS idx_visitors_visitor_id ON visitors(visitor_id);
+CREATE INDEX IF NOT EXISTS idx_visitors_last_seen ON visitors(last_seen DESC);
+CREATE INDEX IF NOT EXISTS idx_page_views_visitor_id ON page_views(visitor_id);
+CREATE INDEX IF NOT EXISTS idx_page_views_created_at ON page_views(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_page_views_pathname ON page_views(pathname);
 
 -- ==========================================
 -- USEFUL VIEWS

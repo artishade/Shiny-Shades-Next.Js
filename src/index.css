@@ -244,3 +244,7 @@ body {
   border-radius: 4px 4px 0 0;
   background: linear-gradient(to top, #B76E79, #D4949E, #F4C2C2);
 }
+
+.chart-bar-filled {
+  background: linear-gradient(to top, #D4949E, #B76E79);
+}

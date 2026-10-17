@@ -18,6 +18,8 @@ import { useProductStore } from '@/store/productStore';
 import { useCartStore, useRecentlyViewedStore, useWishlistStore } from '@/store';
 import { trackingConfig } from '@/config/trackingConfig';
 import { trackPageView } from '@/lib/facebookPixel';
+import { initVisitorTracking } from '@/lib/visitorTracking';
+import CookieConsentBanner from '@/components/CookieConsentBanner';
 
 // ─── Error Boundary ──────────────────────────────────────────────────────────
 // Ported verbatim from src/main.tsx.
@@ -105,12 +107,17 @@ function PixelTracker() {
   useEffect(() => {
     if (pathname.startsWith('/admin')) return;
 
+    // Facebook Pixel + GTM events (send-only to external services)
     trackPageView();
 
     if (trackingConfig.gtmId) {
       window.dataLayer = window.dataLayer || [];
       window.dataLayer.push({ event: 'page_view', page_path: pathname });
     }
+
+    // Visitor analytics — only fires if consent cookie is present
+    void initVisitorTracking();
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
@@ -210,6 +217,9 @@ function AppBoot({ pageProps, children }: { pageProps: PageInitialData; children
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 export default function App({ Component, pageProps }: AppPropsWithLayout) {
+  const router = useRouter();
+  const isCustomerPage = !router.pathname.startsWith('/admin');
+
   // pageProps go in so layouts can read ISR content (announcement bar etc.)
   const getLayout =
     Component.getLayout ?? ((page: ReactNode) => page);
@@ -262,6 +272,9 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
           <ScrollToTop />
 
           {layoutPage}
+
+          {/* GDPR consent banner — only on customer-facing pages (not admin) */}
+          {isCustomerPage && <CookieConsentBanner />}
         </AppBoot>
       </LazyMotion>
     </ErrorBoundary>

@@ -839,6 +839,17 @@ export const AdminContent: React.FC = () => {
           <Input label="Button Text" value={content.heroButtonText} onChange={e => updateField('heroButtonText', e.target.value)} />
 
           <div>
+            <label className="block text-sm font-medium text-[#6B5B55] mb-1.5">Hero Body Text</label>
+            <textarea
+              value={content.heroBodyText ?? ''}
+              onChange={e => updateField('heroBodyText', e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-blush/30 bg-white/80 text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30 resize-none"
+              rows={3}
+              placeholder="Optional body/description text below the headline"
+            />
+          </div>
+
+          <div>
             <label className="text-sm font-medium text-[#6B5B55] mb-1.5 flex items-center gap-1.5">
               <Image size={14} /> Hero Background Image (Desktop)
             </label>
