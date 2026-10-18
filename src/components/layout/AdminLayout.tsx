@@ -9,7 +9,7 @@ import { m as motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Package, FolderOpen, ShoppingCart, Users,
   FileText, Ticket, BarChart3, AlertTriangle, LogOut, Menu, KeyRound, Sparkles, PenLine,
-  TrendingUp
+  Shield, TrendingUp
 } from 'lucide-react';
 import { useAdminAuthStore } from '@/store';
 import { BRAND } from '@/config/brandingConfig';
@@ -28,6 +28,7 @@ const sidebarItems = [
   { label: 'AI Chat', path: '/admin/ai-chat', icon: Sparkles },
   { label: 'AI Prompts', path: '/admin/ai-prompts', icon: PenLine },
   { label: 'API Keys', path: '/admin/api-keys', icon: KeyRound },
+  { label: 'AI Agent Keys', path: '/admin/agent-keys', icon: Shield },
 ];
 
 export const AdminLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
