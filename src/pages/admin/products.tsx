@@ -897,10 +897,10 @@ export const AdminProducts: React.FC = () => {
   const exportSelectedCsv = () => {
     const toExport = selectedIds.size > 0
       ? products.filter((p: Product) => selectedIds.has(p.id))
-      : [];
+      : filtered;
 
     if (toExport.length === 0) {
-      alert('Select at least one product to download CSV.');
+      alert('No products available to download CSV.');
       return;
     }
 
@@ -942,51 +942,70 @@ export const AdminProducts: React.FC = () => {
   };
 
   // ───────────────────────────────────────────────────────
-  // XLSX EXPORT — exact Facebook catalog template format
+  // XLSX EXPORT — Meta / Facebook Catalog Feed Format
   // Filename: catalog_products_YYYY-MM-DD HH_MM_SS.xlsx
-  // One row per color variant; products without colors get one row.
+  // 1 row per product:
+  // - 100% unique content IDs (matches Facebook Pixel product-level tracking)
+  // - Clean Meta Commerce headers (no invalid measurement attributes)
+  // - Full multi-image support via additional_image_link
+  // - Accurate price & sale_price formatting
   // ───────────────────────────────────────────────────────
   const exportSelectedXlsx = () => {
     const toExport = selectedIds.size > 0
       ? products.filter((p: Product) => selectedIds.has(p.id))
-      : [];
+      : filtered;
 
     if (toExport.length === 0) {
-      alert('Select at least one product to download XLSX.');
+      alert('No products available to download XLSX.');
       return;
     }
 
-    // Exact column headers matching the catalog_products template
+    // Official Meta Catalog headers for e-commerce feeds (clean, valid, no empty measurement columns)
     const headers = [
-      'id', 'title', 'description', 'availability', 'condition',
-      'link', 'image_link', 'brand', 'price', 'google_product_category',
-      'fb_product_category', 'quantity_to_sell_on_facebook', 'sale_price',
-      'sale_price_effective_date', 'item_group_id', 'gender', 'color', 'size',
-      'age_group', 'material', 'pattern', 'shipping', 'shipping_weight',
-      'offer_disclaimer', 'offer_disclaimer_url', 'video[0].url', 'video[0].tag[0]',
-      'gtin', 'product_tags[0]', 'product_tags[1]', 'style[0]',
-      'clothing_size_type', 'inseam', 'waist_size', 'chest_size', 'sleeve_length',
-      'skirt_length', 'bra_band_size', 'bra_cup_size', 'neckline', 'waist_rise',
-      'pant_fit', 'pant_length_style', 'jean_wash', 'denim_features[0]',
-      'denim_features[1]', 'pant_leg_style', 'sleeve_length_style', 'sleeve_style',
-      'waist_style', 'sock_rise', 'sheerness', 'upper_body_strap_configuration',
-      'collar_style', 'is_adult_product', 'is_outfit_set', 'closure',
-      'occasion[0]', 'fabric_care_instructions[0]', 'fabric_care_instructions[1]',
-      'size_system', 'is_costume', 'additional_features[0]', 'additional_features[1]',
-      'standard_features[0]', 'character', 'theme', 'sport[0]', 'sports_team[0]',
-      'sports_league[0]',
+      'id',
+      'title',
+      'description',
+      'availability',
+      'condition',
+      'link',
+      'image_link',
+      'additional_image_link',
+      'brand',
+      'price',
+      'google_product_category',
+      'fb_product_category',
+      'quantity_to_sell_on_facebook',
+      'sale_price',
+      'sale_price_effective_date',
+      'item_group_id',
+      'gender',
+      'color',
+      'size',
+      'age_group',
+      'material',
+      'pattern',
+      'shipping',
+      'shipping_weight',
+      'video[0].url',
+      'gtin',
+      'product_tags[0]',
+      'product_tags[1]',
+      'is_adult_product',
+      'is_outfit_set',
+      'custom_label_0',
+      'custom_label_1',
     ];
 
     /** Resolve a color entry (string or {name,hex,label} object) to a display name */
     const resolveColorLabel = (c: any): string => {
       if (!c) return '';
-      if (typeof c === 'string') return c;
-      return c.label || c.name || c.hex || String(c);
+      if (typeof c === 'string') return c.trim();
+      return (c.label || c.name || c.hex || String(c)).trim();
     };
 
     /** Format price as "1000 BDT" for the catalog */
     const fmtPrice = (amount: number | undefined | null) =>
-      amount != null && amount > 0 ? `${amount} BDT` : '';
+      amount != null && !isNaN(Number(amount)) && Number(amount) >= 0 ? `${amount} BDT` : '';
 
     /** Map category name to a rough Google Product Category */
     const mapGoogleCat = (cat: string): string => {
@@ -1017,98 +1036,66 @@ export const AdminProducts: React.FC = () => {
     toExport.forEach((p: Product) => {
       const productUrl = `${SITE.domain}/product/${p.slug}`;
       const coverImage = (p.images || [])[0] || '';
+      const additionalImages = (p.images || []).slice(1, 11).join(',');
       const googleCat = mapGoogleCat(p.category);
       const fbCat = mapFbCat(p.category);
-      const salePrice = p.isOnSale && p.comparePrice ? fmtPrice(p.price) : '';
-      const regularPrice = fmtPrice(p.price);
+
+      // Meta Catalog sale price logic:
+      // If product is on sale with comparePrice higher than price:
+      // price = original higher price (comparePrice), sale_price = discounted selling price (price)
+      const isOnSale = Boolean(p.isOnSale && p.comparePrice && p.comparePrice > p.price);
+      const regularPrice = isOnSale ? fmtPrice(p.comparePrice) : fmtPrice(p.price);
+      const salePrice = isOnSale ? fmtPrice(p.price) : '';
+
       // Tags — first two used in product_tags[0] and product_tags[1]
       const tags = Array.isArray(p.tags) ? p.tags : [];
       const sizesStr = Array.isArray(p.sizes) ? p.sizes.join(', ') : (p.sizes || '');
-      const colors = Array.isArray(p.colors) && p.colors.length > 0 ? p.colors : null;
+      const colorsStr = Array.isArray(p.colors) && p.colors.length > 0
+        ? p.colors.map(resolveColorLabel).filter(Boolean).join(', ')
+        : '';
 
-      /** Build one data row for a given color label (or empty string if no variants) */
-      const buildRow = (colorLabel: string): unknown[] => [
-        p.id,                                       // id
-        p.name,                                     // title
-        p.description || p.shortDescription || '',  // description
+      const customLabel0 = p.category || '';
+      const customLabel1 = p.isOnSale ? 'on-sale' : (p.isNewArrival ? 'new-arrival' : (p.isFeatured ? 'featured' : ''));
+
+      // Plain description without HTML tags
+      const rawDesc = p.description || p.shortDescription || p.name || '';
+      const cleanDesc = rawDesc.replace(/<[^>]*>/g, '').trim();
+
+      // Exactly ONE row per product — guarantees unique content ID matching Pixel
+      rows.push([
+        p.id,                                             // id (unique content ID, matches pixel event)
+        p.name,                                           // title
+        cleanDesc,                                        // description
         (p.stock ?? 0) > 0 ? 'in stock' : 'out of stock', // availability
-        'new',                                      // condition
-        productUrl,                                 // link
-        coverImage,                                 // image_link
-        BRAND.fullName,                             // brand
-        regularPrice,                               // price
-        googleCat,                                  // google_product_category
-        fbCat,                                      // fb_product_category
-        p.stock ?? 0,                               // quantity_to_sell_on_facebook
-        salePrice,                                  // sale_price
-        '',                                         // sale_price_effective_date
-        p.id,                                       // item_group_id (same for all variants)
-        'female',                                   // gender
-        colorLabel,                                 // color
-        sizesStr,                                   // size
-        'adult',                                    // age_group
-        '',                                         // material
-        '',                                         // pattern
-        '',                                         // shipping
-        '',                                         // shipping_weight
-        '',                                         // offer_disclaimer
-        '',                                         // offer_disclaimer_url
-        (p as any).videoUrl || '',                  // video[0].url
-        '',                                         // video[0].tag[0]
-        '',                                         // gtin
-        tags[0] || '',                              // product_tags[0]
-        tags[1] || '',                              // product_tags[1]
-        '',                                         // style[0]
-        '',                                         // clothing_size_type
-        '',                                         // inseam
-        '',                                         // waist_size
-        '',                                         // chest_size
-        '',                                         // sleeve_length
-        '',                                         // skirt_length
-        '',                                         // bra_band_size
-        '',                                         // bra_cup_size
-        '',                                         // neckline
-        '',                                         // waist_rise
-        '',                                         // pant_fit
-        '',                                         // pant_length_style
-        '',                                         // jean_wash
-        '',                                         // denim_features[0]
-        '',                                         // denim_features[1]
-        '',                                         // pant_leg_style
-        '',                                         // sleeve_length_style
-        '',                                         // sleeve_style
-        '',                                         // waist_style
-        '',                                         // sock_rise
-        '',                                         // sheerness
-        '',                                         // upper_body_strap_configuration
-        '',                                         // collar_style
-        'No',                                       // is_adult_product
-        'No',                                       // is_outfit_set
-        '',                                         // closure
-        '',                                         // occasion[0]
-        '',                                         // fabric_care_instructions[0]
-        '',                                         // fabric_care_instructions[1]
-        '',                                         // size_system
-        'No',                                       // is_costume
-        '',                                         // additional_features[0]
-        '',                                         // additional_features[1]
-        '',                                         // standard_features[0]
-        '',                                         // character
-        '',                                         // theme
-        '',                                         // sport[0]
-        '',                                         // sports_team[0]
-        '',                                         // sports_league[0]
-      ];
-
-      if (colors && colors.length > 0) {
-        // One row per color variant
-        colors.forEach((c: any) => {
-          rows.push(buildRow(resolveColorLabel(c)));
-        });
-      } else {
-        // No color variants — single row with empty color field
-        rows.push(buildRow(''));
-      }
+        'new',                                            // condition
+        productUrl,                                       // link
+        coverImage,                                       // image_link
+        additionalImages,                                 // additional_image_link
+        BRAND.fullName || 'Shiny Shades',                 // brand
+        regularPrice,                                     // price
+        googleCat,                                        // google_product_category
+        fbCat,                                            // fb_product_category
+        p.stock ?? 0,                                     // quantity_to_sell_on_facebook
+        salePrice,                                        // sale_price
+        '',                                               // sale_price_effective_date
+        '',                                               // item_group_id (empty for standalone products, prevents conflicts)
+        'female',                                         // gender
+        colorsStr,                                        // color (comma-separated fashion colors)
+        sizesStr,                                         // size (e.g. M, L, XL or Free Size)
+        'adult',                                          // age_group
+        '',                                               // material
+        '',                                               // pattern
+        '',                                               // shipping
+        '',                                               // shipping_weight
+        (p as any).videoUrl || '',                        // video[0].url
+        '',                                               // gtin
+        tags[0] || '',                                    // product_tags[0]
+        tags[1] || '',                                    // product_tags[1]
+        'No',                                             // is_adult_product
+        'No',                                             // is_outfit_set
+        customLabel0,                                     // custom_label_0
+        customLabel1,                                     // custom_label_1
+      ]);
     });
 
     // Build worksheet from headers + data rows
@@ -1116,7 +1103,7 @@ export const AdminProducts: React.FC = () => {
     const wb = xlsxUtils.book_new();
     xlsxUtils.book_append_sheet(wb, ws, 'Products');
 
-    // Filename: catalog_products_YYYY-MM-DD HH_MM_SS (matches template naming)
+    // Filename: catalog_products_YYYY-MM-DD HH_MM_SS (matches Meta template naming)
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
     const datePart = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
@@ -1461,19 +1448,19 @@ export const AdminProducts: React.FC = () => {
             variant="outline"
             size="md"
             onClick={exportSelectedCsv}
-            disabled={selectedIds.size === 0}
-            title={selectedIds.size === 0 ? 'Select products to download CSV' : `Download ${selectedIds.size} selected product(s) as CSV`}
+            disabled={filtered.length === 0}
+            title={selectedIds.size > 0 ? `Download ${selectedIds.size} selected product(s) as CSV` : `Download all ${filtered.length} products as CSV`}
           >
-            <Download size={16} /> Download CSV{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
+            <Download size={16} /> Download CSV{selectedIds.size > 0 ? ` (${selectedIds.size})` : ` (${filtered.length})`}
           </Button>
           <Button
             variant="outline"
             size="md"
             onClick={exportSelectedXlsx}
-            disabled={selectedIds.size === 0}
-            title={selectedIds.size === 0 ? 'Select products to download XLSX' : `Download ${selectedIds.size} selected product(s) as XLSX`}
+            disabled={filtered.length === 0}
+            title={selectedIds.size > 0 ? `Download ${selectedIds.size} selected product(s) for Meta Catalog` : `Download all ${filtered.length} products for Meta Catalog`}
           >
-            <FileSpreadsheet size={16} /> Download XLSX{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
+            <FileSpreadsheet size={16} /> Download XLSX{selectedIds.size > 0 ? ` (${selectedIds.size})` : ` (${filtered.length})`}
           </Button>
           <Button onClick={openAdd}><Plus size={16} /> Add Product</Button>
         </div>
