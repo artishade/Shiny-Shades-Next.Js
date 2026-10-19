@@ -293,7 +293,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
       breadcrumbSchema,
     };
     // products and loading drive the ItemList / numberOfItems — must be deps
-  }, [category, slug, products, loading]);
+  }, [category, products, loading]);
 
   // ─── Not-found state ─────────────────────────────────────────────────────
   // Category store loads at app boot — if still missing after that, it's a 404

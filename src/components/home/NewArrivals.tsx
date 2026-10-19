@@ -26,7 +26,9 @@ export const NewArrivals: React.FC = () => {
         true
     );
 
-    useEffect(() => { fetchProducts(); }, []);
+    // fetchProducts is a zustand store action, so its identity is stable and
+    // this still runs exactly once on mount.
+    useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
     /* ── Pull config from content store ── */
     const section = content.newArrivalsSection;

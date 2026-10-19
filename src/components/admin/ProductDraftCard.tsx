@@ -360,7 +360,6 @@ export const ProductDraftCard: React.FC<ProductDraftCardProps> = ({ draft, meta,
             {previews.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                     {previews.map((url, index) => (
-                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                             key={url}
                             src={url}

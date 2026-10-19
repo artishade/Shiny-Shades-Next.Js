@@ -63,9 +63,11 @@ export default function Document() {
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
+        {/* preconnect already covers the DNS/TLS setup for gstatic, so a
+            sibling dns-prefetch for the same host is redundant — and it made
+            @next/next/google-font-preconnect fail the file. */}
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
 
         <link rel="preconnect" href="https://connect.facebook.net" crossOrigin="" />
         <link rel="dns-prefetch" href="https://connect.facebook.net" />
@@ -95,7 +97,6 @@ export default function Document() {
         )}
 
         <noscript>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             height={1}
             width={1}

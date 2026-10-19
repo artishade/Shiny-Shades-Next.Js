@@ -10,7 +10,7 @@
    =================================================== */
 declare global { interface Window { dataLayer: any[]; } }
 import { CustomerLayout } from '@/components/layout/CustomerLayout';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from '@/lib/routerCompat';
 import { m as motion } from 'framer-motion';
 import { Search as SearchIcon, ArrowRight, Clock, X, TrendingUp } from 'lucide-react';
@@ -28,6 +28,7 @@ import { rowToCategory } from '@/store/categoryStore';
 import { mergeWithDefaults, CONTENT_ROW_ID } from '@/store/contentStore';
 import type { PageInitialData } from '@/types/layout';
 import { siteConfig } from '@/config/siteConfig';
+import { trackSearch } from '@/lib/facebookPixel';
 
 /* ─── Cookie helpers for search history ─── */
 const HISTORY_COOKIE = 'ag_search_history';
@@ -141,16 +142,35 @@ export const SearchPage: React.FC<PageInitialData> = ({ initialProducts }) => {
     ).slice(0, 5);
   }, [products]);
 
-  /* GTM DATA LAYER — search */
+  /* GTM DATA LAYER + Meta Pixel — search */
+  // Results populate asynchronously, so the effect re-runs as products land.
+  // The ref keeps Meta's `Search` to one event per query/result-set instead of
+  // one per render.
+  const trackedSearchRef = useRef('');
   useEffect(() => {
-    if (!query.trim()) return;
+    const term = query.trim();
+    if (!term) return;
+
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({
       event: 'search',
-      search_term: query.trim(),
+      search_term: term,
       search_results_count: results.length,
     });
-  }, [query, results.length]);
+
+    const key = `${term}|${results.length}`;
+    if (trackedSearchRef.current === key) return;
+    trackedSearchRef.current = key;
+
+    trackSearch(
+      term,
+      results.map((product) => ({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+      })),
+    );
+  }, [query, results]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

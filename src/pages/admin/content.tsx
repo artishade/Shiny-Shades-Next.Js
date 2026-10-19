@@ -6,7 +6,9 @@
 
 import { AdminAuthLayout } from '@/components/layout/AdminAuthLayout';
 import React, { useState, useRef, useEffect } from 'react';
-import { Save, Eye, Plus, Trash2, Image, Megaphone, ToggleLeft, ToggleRight, Video, Type, Crop } from 'lucide-react';
+// `Image` is aliased: jsx-a11y/alt-text treats a component literally named
+// `Image` as an <img> and demands an alt prop on these decorative icons.
+import { Save, Eye, Plus, Trash2, Image as ImageIcon, Megaphone, ToggleLeft, ToggleRight, Video, Type, Crop } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import { useContentStore, type ContentData } from '@/store/contentStore';
 import { ImageCropperModal } from '@/components/admin/ImageCropperModal';
@@ -175,7 +177,7 @@ const MediaDropzone: React.FC<{
         className={`flex flex-col items-center justify-center gap-1 border-2 border-dashed rounded-xl py-4 px-3 text-center cursor-pointer transition-colors ${dragOver ? 'border-rose-gold bg-blush-light/40' : 'border-blush/30 bg-white/50 hover:bg-white/70'
           }`}
       >
-        {isVideo ? <Video size={16} className="text-[#6B5B55]" /> : <Image size={16} className="text-[#6B5B55]" />}
+        {isVideo ? <Video size={16} className="text-[#6B5B55]" /> : <ImageIcon size={16} className="text-[#6B5B55]" />}
         <p className="text-xs text-[#6B5B55]">
           Drag &amp; drop {isVideo ? 'a video' : 'an image'} here, or click to browse
         </p>
@@ -851,7 +853,7 @@ export const AdminContent: React.FC = () => {
 
           <div>
             <label className="text-sm font-medium text-[#6B5B55] mb-1.5 flex items-center gap-1.5">
-              <Image size={14} /> Hero Background Image (Desktop)
+              <ImageIcon size={14} /> Hero Background Image (Desktop)
             </label>
             <p className="text-xs text-[#6B5B55]/70 mb-2">
               1920 × 840px. Shown on tablets and desktop.
@@ -871,7 +873,7 @@ export const AdminContent: React.FC = () => {
 
           <div>
             <label className="text-sm font-medium text-[#6B5B55] mb-1.5 flex items-center gap-1.5">
-              <Image size={14} /> Hero Background Image (Mobile)
+              <ImageIcon size={14} /> Hero Background Image (Mobile)
               <span className="text-xs font-normal text-[#6B5B55]/70">— optional</span>
             </label>
             <p className="text-xs text-[#6B5B55]/70 mb-2">

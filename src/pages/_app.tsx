@@ -117,8 +117,6 @@ function PixelTracker() {
 
     // Visitor analytics — only fires if consent cookie is present
     void initVisitorTracking();
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   return null;

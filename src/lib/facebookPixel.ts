@@ -20,29 +20,18 @@ export type PixelItem = {
   quantity?: number;
 };
 
-/**
- * Returns Meta test_event_code if present in URL query params or sessionStorage.
- * In Meta Events Manager -> Test Events, Meta provides a code like "TEST12345".
- * Adding `?test_event_code=TEST12345` to the site URL routes all live events to the Test tab.
- */
-export const getTestEventCode = (): string | null => {
-  if (typeof window === 'undefined') return null;
-  try {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('test_event_code');
-    if (code) {
-      sessionStorage.setItem('meta_test_event_code', code);
-      return code;
-    }
-    return sessionStorage.getItem('meta_test_event_code') || null;
-  } catch {
-    return null;
-  }
-};
+type PixelEventName =
+  | 'PageView'
+  | 'ViewContent'
+  | 'AddToCart'
+  | 'InitiateCheckout'
+  | 'Purchase'
+  | 'Search';
 
 /**
  * Ensure window.fbq stub exists so calls are queued and never dropped
  * even if the external fbevents.js has not finished downloading.
+ * The real loader + fbq('init') lives in _app.tsx.
  */
 const getFbq = (): ((...args: any[]) => void) | null => {
   if (typeof window === 'undefined') return null;
@@ -68,149 +57,179 @@ const getFbq = (): ((...args: any[]) => void) | null => {
 };
 
 const sanitizeItem = (item: PixelItem) => ({
-  id: String(item.id || '').trim(),
-  name: String(item.name || '').trim(),
-  price: Math.max(0, Number(item.price) || 0),
-  quantity: Math.max(1, Number(item.quantity) || 1),
+  id: String(item?.id ?? '').trim(),
+  name: String(item?.name ?? '').trim(),
+  price: Math.max(0, Number(item?.price) || 0),
+  quantity: Math.max(1, Math.floor(Number(item?.quantity) || 1)),
 });
 
-export const initFacebookPixel = () => {
-  // Safe invocation — ensures queue is ready
-  getFbq();
+type CleanItem = ReturnType<typeof sanitizeItem>;
+
+const sanitizeItems = (items: PixelItem[] | undefined): CleanItem[] =>
+  (items ?? []).map(sanitizeItem).filter((item) => Boolean(item.id));
+
+/** `contents` objects need `id` + `quantity`; `item_price` is the documented extra. */
+const toContents = (items: CleanItem[]) =>
+  items.map((item) => ({
+    id: item.id,
+    quantity: item.quantity,
+    item_price: item.price,
+  }));
+
+const itemsValue = (items: CleanItem[]) =>
+  items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+const numItems = (items: CleanItem[]) =>
+  items.reduce((sum, item) => sum + item.quantity, 0);
+
+/**
+ * `Number(total) || itemsValue(items)` used to treat a legitimately free
+ * (0.00) order as "no total" and report the item sum instead, inflating
+ * reported revenue for fully discounted orders.
+ */
+const resolveValue = (total: number, items: CleanItem[]) => {
+  const numeric = Number(total);
+  return Number.isFinite(numeric) ? Math.max(0, numeric) : itemsValue(items);
 };
 
-export const trackPageView = () => {
+/**
+ * The fourth argument of `fbq('track')` is `eventID` — a string used to
+ * deduplicate against a Conversions API event with the same ID.
+ * `test_event_code` is a server-side (Conversions API) parameter and does
+ * nothing when passed here, so it is not used.
+ */
+const send = (
+  event: PixelEventName,
+  params: Record<string, unknown>,
+  eventId?: string,
+) => {
   const fbq = getFbq();
   if (!fbq) return;
 
-  const testCode = getTestEventCode();
-  if (testCode) {
-    fbq('track', 'PageView', {}, { test_event_code: testCode });
+  if (eventId) {
+    fbq('track', event, params, String(eventId));
   } else {
-    fbq('track', 'PageView');
+    fbq('track', event, params);
   }
 };
 
-export const trackViewContent = (item: PixelItem) => {
-  const fbq = getFbq();
-  if (!fbq || !item?.id) return;
+export const initFacebookPixel = () => {
+  getFbq();
+};
 
+export const trackPageView = (eventId?: string) => {
+  send('PageView', {}, eventId);
+};
+
+export const trackViewContent = (item: PixelItem, eventId?: string) => {
   const clean = sanitizeItem(item);
-  const totalVal = clean.price * clean.quantity;
+  if (!clean.id) return;
 
-  const payload = {
-    content_type: CONTENT_TYPE,
-    content_ids: [clean.id],
-    contents: [
-      {
-        id: clean.id,
-        quantity: clean.quantity,
-        item_price: clean.price,
-      },
-    ],
-    content_name: clean.name,
-    value: totalVal,
-    currency: CURRENCY,
-  };
-
-  const testCode = getTestEventCode();
-  if (testCode) {
-    fbq('track', 'ViewContent', payload, { test_event_code: testCode });
-  } else {
-    fbq('track', 'ViewContent', payload);
-  }
+  send(
+    'ViewContent',
+    {
+      content_type: CONTENT_TYPE,
+      content_ids: [clean.id],
+      contents: toContents([clean]),
+      content_name: clean.name,
+      value: clean.price * clean.quantity,
+      currency: CURRENCY,
+    },
+    eventId,
+  );
 };
 
-export const trackAddToCart = (item: PixelItem) => {
-  const fbq = getFbq();
-  if (!fbq || !item?.id) return;
-
+export const trackAddToCart = (item: PixelItem, eventId?: string) => {
   const clean = sanitizeItem(item);
-  const totalVal = clean.price * clean.quantity;
+  if (!clean.id) return;
 
-  const payload = {
-    content_type: CONTENT_TYPE,
-    content_ids: [clean.id],
-    contents: [
-      {
-        id: clean.id,
-        quantity: clean.quantity,
-        item_price: clean.price,
-      },
-    ],
-    content_name: clean.name,
-    value: totalVal,
-    currency: CURRENCY,
-  };
-
-  const testCode = getTestEventCode();
-  if (testCode) {
-    fbq('track', 'AddToCart', payload, { test_event_code: testCode });
-  } else {
-    fbq('track', 'AddToCart', payload);
-  }
+  send(
+    'AddToCart',
+    {
+      content_type: CONTENT_TYPE,
+      content_ids: [clean.id],
+      contents: toContents([clean]),
+      content_name: clean.name,
+      value: clean.price * clean.quantity,
+      currency: CURRENCY,
+    },
+    eventId,
+  );
 };
 
-export const trackInitiateCheckout = (items: PixelItem[], total: number) => {
-  const fbq = getFbq();
-  if (!fbq || !items || items.length === 0) return;
-
-  const cleanItems = items.map(sanitizeItem).filter((i) => Boolean(i.id));
+export const trackInitiateCheckout = (
+  items: PixelItem[],
+  total: number,
+  eventId?: string,
+) => {
+  const cleanItems = sanitizeItems(items);
   if (cleanItems.length === 0) return;
 
-  const safeTotal = Math.max(0, Number(total) || cleanItems.reduce((acc, i) => acc + i.price * i.quantity, 0));
-
-  const payload = {
-    content_type: CONTENT_TYPE,
-    content_ids: cleanItems.map((i) => i.id),
-    contents: cleanItems.map((i) => ({
-      id: i.id,
-      quantity: i.quantity,
-      item_price: i.price,
-    })),
-    num_items: cleanItems.reduce((acc, i) => acc + i.quantity, 0),
-    value: safeTotal,
-    currency: CURRENCY,
-  };
-
-  const testCode = getTestEventCode();
-  if (testCode) {
-    fbq('track', 'InitiateCheckout', payload, { test_event_code: testCode });
-  } else {
-    fbq('track', 'InitiateCheckout', payload);
-  }
+  send(
+    'InitiateCheckout',
+    {
+      content_type: CONTENT_TYPE,
+      content_ids: cleanItems.map((item) => item.id),
+      contents: toContents(cleanItems),
+      num_items: numItems(cleanItems),
+      value: resolveValue(total, cleanItems),
+      currency: CURRENCY,
+    },
+    eventId,
+  );
 };
 
-export const trackPurchase = (items: PixelItem[], total: number, orderId?: string) => {
-  const fbq = getFbq();
-  if (!fbq || !items || items.length === 0) return;
-
-  const cleanItems = items.map(sanitizeItem).filter((i) => Boolean(i.id));
+export const trackPurchase = (
+  items: PixelItem[],
+  total: number,
+  orderId?: string,
+  eventId?: string,
+) => {
+  const cleanItems = sanitizeItems(items);
   if (cleanItems.length === 0) return;
 
-  const safeTotal = Math.max(0, Number(total) || cleanItems.reduce((acc, i) => acc + i.price * i.quantity, 0));
-
-  const payload: Record<string, any> = {
+  const params: Record<string, unknown> = {
     content_type: CONTENT_TYPE,
-    content_ids: cleanItems.map((i) => i.id),
-    contents: cleanItems.map((i) => ({
-      id: i.id,
-      quantity: i.quantity,
-      item_price: i.price,
-    })),
-    num_items: cleanItems.reduce((acc, i) => acc + i.quantity, 0),
-    value: safeTotal,
+    content_ids: cleanItems.map((item) => item.id),
+    contents: toContents(cleanItems),
+    num_items: numItems(cleanItems),
+    value: resolveValue(total, cleanItems),
     currency: CURRENCY,
   };
 
   if (orderId) {
-    payload.order_id = String(orderId);
+    params.order_id = String(orderId);
   }
 
-  const testCode = getTestEventCode();
-  if (testCode) {
-    fbq('track', 'Purchase', payload, { test_event_code: testCode });
-  } else {
-    fbq('track', 'Purchase', payload);
+  send('Purchase', params, eventId);
+};
+
+/**
+ * `Search` carries `search_string`; `contents`/`content_ids` are only required
+ * for Advantage+ catalog ads, so they are attached when the matched products
+ * are already known.
+ */
+export const trackSearch = (
+  searchString: string,
+  items: PixelItem[] = [],
+  eventId?: string,
+) => {
+  const query = String(searchString ?? '').trim();
+  if (!query) return;
+
+  const cleanItems = sanitizeItems(items);
+
+  const params: Record<string, unknown> = {
+    content_type: CONTENT_TYPE,
+    search_string: query,
+    currency: CURRENCY,
+  };
+
+  if (cleanItems.length > 0) {
+    params.content_ids = cleanItems.map((item) => item.id);
+    params.contents = toContents(cleanItems);
+    params.value = itemsValue(cleanItems);
   }
+
+  send('Search', params, eventId);
 };

@@ -15,6 +15,8 @@ import { useCouponStore, useProductStore, useOrderStore } from '@/store';
 import { SITE } from '@/config/siteConfig';
 import type { Coupon } from '@/types';
 
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 // ==========================================
 // COUPONS ADMIN — already worked, kept as-is
 // ==========================================
@@ -246,21 +248,24 @@ export const AdminReports: React.FC = () => {
   const { orders, updateOrderStatus } = useOrderStore();
 
   // ── Real revenue by month (last 6 months) ──
-  const now = new Date();
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-  const salesData = useMemo(() => Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-    const monthOrders = orders.filter(o => {
-      const od = new Date(o.createdAt);
-      return od.getFullYear() === d.getFullYear() && od.getMonth() === d.getMonth() && o.status !== 'cancelled';
+  // `now` is read inside the memo instead of the render body: it used to be a
+  // new Date() each render, which would have made it a dependency that changed
+  // on every keystroke and defeated the memo entirely.
+  const salesData = useMemo(() => {
+    const now = new Date();
+    return Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      const monthOrders = orders.filter(o => {
+        const od = new Date(o.createdAt);
+        return od.getFullYear() === d.getFullYear() && od.getMonth() === d.getMonth() && o.status !== 'cancelled';
+      });
+      return {
+        month: MONTH_NAMES[d.getMonth()],
+        revenue: monthOrders.reduce((s, o) => s + o.total, 0),
+        orders: monthOrders.length,
+      };
     });
-    return {
-      month: monthNames[d.getMonth()],
-      revenue: monthOrders.reduce((s, o) => s + o.total, 0),
-      orders: monthOrders.length,
-    };
-  }), [orders]);
+  }, [orders]);
 
   const maxRevenue = Math.max(...salesData.map(d => d.revenue), 1);
   const maxOrders = Math.max(...salesData.map(d => d.orders), 1);

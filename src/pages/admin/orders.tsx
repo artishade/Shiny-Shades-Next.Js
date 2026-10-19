@@ -85,7 +85,7 @@ export const AdminOrders: React.FC = () => {
   // ── FIX 1: Fetch real orders on mount so search has data ──────────────────
   useEffect(() => {
     fetchOrders?.();
-  }, []);
+  }, [fetchOrders]);
 
   // ── FIX 2: Inline total editing state ─────────────────────────────────────
   const [editingTotal, setEditingTotal] = useState(false);
@@ -97,10 +97,15 @@ export const AdminOrders: React.FC = () => {
 
   // ─── Keep selectedOrder in sync with store updates ────────────────────────
   useEffect(() => {
-    if (selectedOrder) {
-      const fresh = orders.find(o => o.id === selectedOrder.id);
-      if (fresh) setSelectedOrder(fresh);
-    }
+    // Functional update keeps this effect off `selectedOrder` as a dependency:
+    // depending on it re-ran the sync whenever the admin picked an order, and
+    // reading it from the closure invited exactly the staleness the lint rule
+    // warns about.
+    setSelectedOrder(prev => {
+      if (!prev) return prev;
+      const fresh = orders.find(o => o.id === prev.id);
+      return fresh ?? prev;
+    });
   }, [orders]);
 
   // ─── Filtering ─────────────────────────────────────────────────────────────

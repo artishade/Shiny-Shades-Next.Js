@@ -519,16 +519,8 @@ export const CheckoutPage: React.FC = () => {
 
   const handleReviewOrder = () => {
     if (validate()) {
-      trackInitiateCheckout(
-        checkoutItems.map((item) => ({
-          id: item.product.id,
-          name: item.product.name,
-          price: item.product.price,
-          quantity: item.quantity,
-        })),
-        total,
-      );
-
+      // InitiateCheckout is fired once on entering checkout (see the guarded
+      // effect above). Firing it again here double-counted every checkout.
       window.dataLayer = window.dataLayer || [];
       window.dataLayer.push({ ecommerce: null });
       window.dataLayer.push({

@@ -277,6 +277,12 @@ const MiniWatermarkThumb: React.FC<{
       }
     };
 
+    // The effects below run from image-load callbacks and prop changes. They
+    // read the newest `redraw` closure through a ref so re-drawing on a slider
+    // move never re-creates the object URL (which would reload the image).
+    const redrawRef = useRef(redraw);
+    redrawRef.current = redraw;
+
     useEffect(() => {
       imgRef.current = null;
       let url = '';
@@ -289,7 +295,7 @@ const MiniWatermarkThumb: React.FC<{
       const img = new Image();
       img.onload = () => {
         imgRef.current = img;
-        redraw();
+        redrawRef.current();
         if (!revoked) { revoked = true; try { URL.revokeObjectURL(url); } catch { } }
       };
       img.onerror = () => {
@@ -301,7 +307,7 @@ const MiniWatermarkThumb: React.FC<{
             const retryImg = new Image();
             retryImg.onload = () => {
               imgRef.current = retryImg;
-              redraw();
+              redrawRef.current();
               try { URL.revokeObjectURL(retryUrl); } catch { }
             };
             retryImg.onerror = () => { try { URL.revokeObjectURL(retryUrl); } catch { } };
@@ -315,7 +321,7 @@ const MiniWatermarkThumb: React.FC<{
       };
     }, [file]);
     useEffect(() => {
-      redraw();
+      redrawRef.current();
     }, [xFrac, yFrac, enabled, textWmEnabled, textWmText, textWmOpacity, textWmSize, textWmAngle, textWmColor, textWmSpacingX, textWmSpacingY, logoText, logoColorLeft, logoColorRight, customLogoWm?.enabled, customLogoWm?.imageDataUrl, customLogoWm?.size, customLogoWm?.opacity, customLogoWm?.bgEnabled, customLogoWm?.bgColor, customLogoWm?.bgOpacity, customLogoWm?.borderRadius, customLogoWm?.padding, customLogoWm?.shadowEnabled, customLogoWm?.shadowStrength]);
 
     return (
@@ -440,7 +446,7 @@ const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({
       };
       img.src = url;
     }
-  }, [pos, file, sizeMultiplier, enabled, textWmEnabled, textWmText, textWmOpacity, textWmSize, textWmAngle, textWmColor, textWmSpacingX, textWmSpacingY, logoText, logoColorLeft, logoColorRight, customLogoWm?.enabled, customLogoWm?.imageDataUrl, customLogoWm?.size, customLogoWm?.opacity, customLogoWm?.bgEnabled, customLogoWm?.bgColor, customLogoWm?.bgOpacity, customLogoWm?.borderRadius, customLogoWm?.padding, customLogoWm?.shadowEnabled, customLogoWm?.shadowStrength]);
+  }, [pos, file, sizeMultiplier, enabled, textWmEnabled, textWmText, textWmOpacity, textWmSize, textWmAngle, textWmColor, textWmSpacingX, textWmSpacingY, logoText, logoColorLeft, logoColorRight, customLogoWm]);
 
   const getFrac = (e: React.MouseEvent<HTMLCanvasElement> | MouseEvent) => {
     const canvas = canvasRef.current!;
@@ -457,11 +463,18 @@ const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({
     onPositionChange(xFrac, yFrac);
   };
 
+  // Window-level drag listeners are registered once. Calling through a ref keeps
+  // them bound to the latest getFrac/applyPos (and so the latest
+  // onPositionChange prop) without re-subscribing on every render, which would
+  // drop an in-flight drag mid-move.
+  const dragHandlersRef = useRef({ getFrac, applyPos });
+  dragHandlersRef.current = { getFrac, applyPos };
+
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       if (!isDragging.current) return;
-      const f = getFrac(e);
-      applyPos(f.xFrac, f.yFrac);
+      const f = dragHandlersRef.current.getFrac(e);
+      dragHandlersRef.current.applyPos(f.xFrac, f.yFrac);
     };
     const onMouseUp = () => { isDragging.current = false; };
     window.addEventListener('mousemove', onMouseMove);
@@ -553,6 +566,9 @@ export const AdminProducts: React.FC = () => {
   // Guards the auto-run. React strict mode double-invokes effects in dev, and
   // each run costs a paid API call, so the key is claimed before the await.
   const aiAutoKeyRef = useRef<string | null>(null);
+  // True while the SKU is still the auto-generated one, so editing the title
+  // keeps it in sync but never clobbers a SKU the admin typed by hand.
+  const skuAutoRef = useRef(true);
 
   // ── Custom Logo Watermark state (persisted in localStorage) ──
   const [customLogoWm, setCustomLogoWm] = useState<CustomLogoWmConfig>(() => loadCustomLogoWmFromLS());
@@ -625,24 +641,31 @@ export const AdminProducts: React.FC = () => {
       .catch((err) => console.error('[BrandLogo] Cloudinary upload failed:', err));
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  // Store actions are stable, so this still runs exactly once on mount.
+  useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
+  // The first staged file is the cover — colour detection and AI autofill both
+  // key off it. Hoisting it keeps those effects from depending on the whole
+  // `imageFiles` array, which would re-run them on every reorder.
+  const coverFile = imageFiles[0];
+  const coverFileKey = coverFile ? `${coverFile.name}:${coverFile.size}` : '';
 
   // Auto-detect colors from first uploaded image
   useEffect(() => {
-    if (imageFiles.length === 0) {
+    if (!coverFile) {
       setDetectedColors([]);
       return;
     }
     let cancelled = false;
     setDetectingColors(true);
-    extractDominantColors(imageFiles[0], 6).then((colors) => {
+    extractDominantColors(coverFile, 6).then((colors) => {
       if (!cancelled) {
         setDetectedColors(colors);
         setDetectingColors(false);
       }
     });
     return () => { cancelled = true; };
-  }, [imageFiles[0]?.name, imageFiles[0]?.size]);
+  }, [coverFile]);
 
   /**
    * Merges a vision result into the form.
@@ -766,16 +789,20 @@ export const AdminProducts: React.FC = () => {
 
   // Fires once per newly picked cover image, and only for new products — an
   // existing listing is never rewritten without pressing Regenerate.
+  // Same latest-callback reasoning as the drag preview: reading runAiAutofill
+  // directly would put it in the dependency list, and since it is re-created on
+  // every render this effect would then re-fire (and bill another vision call)
+  // after any unrelated form edit.
+  const runAiAutofillRef = useRef(runAiAutofill);
+  runAiAutofillRef.current = runAiAutofill;
+
   useEffect(() => {
-    const file = imageFiles[0];
-    if (!file || editingId) return;
+    if (!coverFile || !coverFileKey || editingId) return;
+    if (aiAutoKeyRef.current === coverFileKey) return;
+    aiAutoKeyRef.current = coverFileKey;
 
-    const key = `${file.name}:${file.size}`;
-    if (aiAutoKeyRef.current === key) return;
-    aiAutoKeyRef.current = key;
-
-    runAiAutofill(false);
-  }, [imageFiles[0]?.name, imageFiles[0]?.size, editingId]);
+    runAiAutofillRef.current(false);
+  }, [coverFile, coverFileKey, editingId]);
 
   // ── Auto-generate SKU ──
   const generateSKU = (name: string): string => {
@@ -797,7 +824,12 @@ export const AdminProducts: React.FC = () => {
 
   const handleNameChange = (name: string) => {
     const newForm: Partial<Product> = { ...form, name };
-    if (!form.sku || form.sku.startsWith('')) newForm.sku = generateSKU(name);
+    // Was `form.sku.startsWith('')`, which is always true — every keystroke in
+    // the title silently replaced a hand-written SKU with a random one.
+    if (!form.sku || skuAutoRef.current) {
+      newForm.sku = generateSKU(name);
+      skuAutoRef.current = true;
+    }
     setForm(newForm);
   };
 
@@ -1163,6 +1195,7 @@ export const AdminProducts: React.FC = () => {
 
   const openAdd = () => {
     setEditingId(null);
+    skuAutoRef.current = true;
     resetModal();
     setForm({
       ...emptyProduct,
@@ -1178,6 +1211,8 @@ export const AdminProducts: React.FC = () => {
 
   const openEdit = (product: Product) => {
     setEditingId(product.id);
+    // An existing listing owns its SKU; editing the title must not rewrite it.
+    skuAutoRef.current = false;
     resetModal();
     setVideoPreviewUrl((product as any).videoUrl || '');
     setForm({
@@ -1652,13 +1687,13 @@ export const AdminProducts: React.FC = () => {
             <span className="text-[11px] font-medium text-[#6B5B55] whitespace-nowrap">SKU</span>
             <input
               value={form.sku || ''}
-              onChange={e => setForm({ ...form, sku: e.target.value })}
+              onChange={e => { skuAutoRef.current = false; setForm({ ...form, sku: e.target.value }); }}
               className="flex-1 px-2.5 py-1.5 rounded-lg border border-blush/30 bg-white/80 text-xs font-mono text-charcoal focus:outline-none focus:ring-1 focus:ring-rose-gold/30 min-w-0"
               placeholder="Auto-generated from name"
             />
             <button
               type="button"
-              onClick={() => setForm({ ...form, sku: generateSKU(form.name || '') })}
+              onClick={() => { skuAutoRef.current = true; setForm({ ...form, sku: generateSKU(form.name || '') }); }}
               className="p-1.5 rounded-lg hover:bg-blush transition-colors flex-shrink-0"
               title="Regenerate SKU"
             >

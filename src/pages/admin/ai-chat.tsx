@@ -478,7 +478,6 @@ const AdminAiChatPage: NextPageWithLayout = () => {
           <div className="flex flex-wrap gap-2 mb-2">
             {thumbs.map((url, index) => (
               <div key={url} className="relative">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={url}
                   alt={`Attachment ${index + 1}`}

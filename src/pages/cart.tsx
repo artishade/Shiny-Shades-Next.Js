@@ -12,7 +12,6 @@ import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Tag } from 'lucide-react'
 import { Button, EmptyState, PriceDisplay } from '@/components/ui';
 import { useCartStore, useCouponStore } from '@/store';
 import { SITE } from '@/config/siteConfig';
-import { trackInitiateCheckout } from '@/lib/facebookPixel';
 
 export const CartPage: React.FC = () => {
   const navigate = useNavigate();
@@ -365,18 +364,7 @@ export const CartPage: React.FC = () => {
                 <Button
                   fullWidth
                   size="lg"
-                  onClick={() => {
-                    trackInitiateCheckout(
-                      items.map((i) => ({
-                        id: i.product.id,
-                        name: i.product.name,
-                        price: i.product.price,
-                        quantity: i.quantity,
-                      })),
-                      orderTotal,
-                    );
-                    navigate('/checkout');
-                  }}
+                  onClick={() => navigate('/checkout')}
                 >
                   Proceed to Checkout <ArrowRight size={16} />
                 </Button>
