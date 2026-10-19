@@ -319,22 +319,7 @@ export const CheckoutPage: React.FC = () => {
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponError, setCouponError] = useState('');
 
-  // Track InitiateCheckout on checkout landing
   const hasTrackedCheckout = useRef(false);
-  useEffect(() => {
-    if (checkoutItems.length > 0 && !hasTrackedCheckout.current) {
-      hasTrackedCheckout.current = true;
-      trackInitiateCheckout(
-        checkoutItems.map((item) => ({
-          id: item.product.id,
-          name: item.product.name,
-          price: item.product.price,
-          quantity: item.quantity,
-        })),
-        total,
-      );
-    }
-  }, [checkoutItems, total]);
   const [cartCouponOverridden, setCartCouponOverridden] = useState(false);
 
   // Review & Order State
@@ -384,6 +369,22 @@ export const CheckoutPage: React.FC = () => {
   const deliveryZoneLabel = isInsideDhaka ? t.zoneInside : t.zoneOutside;
 
   const total = Math.max(0, subtotal - discount - couponDiscount + shippingCharge);
+
+  // Track InitiateCheckout on checkout landing (must run after `total` is derived)
+  useEffect(() => {
+    if (checkoutItems.length > 0 && !hasTrackedCheckout.current) {
+      hasTrackedCheckout.current = true;
+      trackInitiateCheckout(
+        checkoutItems.map((item) => ({
+          id: item.product.id,
+          name: item.product.name,
+          price: item.product.price,
+          quantity: item.quantity,
+        })),
+        total,
+      );
+    }
+  }, [checkoutItems, total]);
 
   const updateForm = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));

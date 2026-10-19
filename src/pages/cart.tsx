@@ -3,6 +3,7 @@ declare global {
     dataLayer: any[];
   }
 }
+import Head from 'next/head';
 import { CustomerLayout } from '@/components/layout/CustomerLayout';
 import React from 'react';
 import { Link, useNavigate } from '@/lib/routerCompat';
