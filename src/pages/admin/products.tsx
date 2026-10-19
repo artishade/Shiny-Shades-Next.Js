@@ -11,6 +11,7 @@ import { AdminAuthLayout } from '@/components/layout/AdminAuthLayout';
 import { uploadToCloudinary, getOptimizedImageUrl } from '@/lib/cloudinary';
 import { SIMPLE_COLORS } from '@/lib/simpleColors';
 import { BRAND } from '@/config/brandingConfig';
+import { SITE } from '@/config/siteConfig';
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, Edit2, Trash2, Search, X, RefreshCw, Sparkles, Download, FileSpreadsheet } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
@@ -941,7 +942,9 @@ export const AdminProducts: React.FC = () => {
   };
 
   // ───────────────────────────────────────────────────────
-  // XLSX EXPORT — same format as the uploaded template
+  // XLSX EXPORT — exact Facebook catalog template format
+  // Filename: catalog_products_YYYY-MM-DD HH_MM_SS.xlsx
+  // One row per color variant; products without colors get one row.
   // ───────────────────────────────────────────────────────
   const exportSelectedXlsx = () => {
     const toExport = selectedIds.size > 0
@@ -953,51 +956,173 @@ export const AdminProducts: React.FC = () => {
       return;
     }
 
-    // Build rows matching the upload template column order
+    // Exact column headers matching the catalog_products template
     const headers = [
-      'ID', 'Name', 'SKU', 'Slug', 'Category', 'Price', 'Compare Price', 'Stock',
-      'Sizes', 'Colors', 'Tags', 'Featured', 'Trending', 'New Arrival', 'On Sale',
-      'Rating', 'Review Count', 'Short Description', 'Description', 'Images', 'Video URL',
-      'SEO Title', 'SEO Keywords', 'Created At', 'Updated At',
+      'id', 'title', 'description', 'availability', 'condition',
+      'link', 'image_link', 'brand', 'price', 'google_product_category',
+      'fb_product_category', 'quantity_to_sell_on_facebook', 'sale_price',
+      'sale_price_effective_date', 'item_group_id', 'gender', 'color', 'size',
+      'age_group', 'material', 'pattern', 'shipping', 'shipping_weight',
+      'offer_disclaimer', 'offer_disclaimer_url', 'video[0].url', 'video[0].tag[0]',
+      'gtin', 'product_tags[0]', 'product_tags[1]', 'style[0]',
+      'clothing_size_type', 'inseam', 'waist_size', 'chest_size', 'sleeve_length',
+      'skirt_length', 'bra_band_size', 'bra_cup_size', 'neckline', 'waist_rise',
+      'pant_fit', 'pant_length_style', 'jean_wash', 'denim_features[0]',
+      'denim_features[1]', 'pant_leg_style', 'sleeve_length_style', 'sleeve_style',
+      'waist_style', 'sock_rise', 'sheerness', 'upper_body_strap_configuration',
+      'collar_style', 'is_adult_product', 'is_outfit_set', 'closure',
+      'occasion[0]', 'fabric_care_instructions[0]', 'fabric_care_instructions[1]',
+      'size_system', 'is_costume', 'additional_features[0]', 'additional_features[1]',
+      'standard_features[0]', 'character', 'theme', 'sport[0]', 'sports_team[0]',
+      'sports_league[0]',
     ];
 
-    const rows = toExport.map((p: Product) => [
-      p.id,
-      p.name,
-      p.sku,
-      p.slug,
-      p.category,
-      p.price,
-      p.comparePrice ?? '',
-      p.stock,
-      Array.isArray(p.sizes) ? p.sizes.join(', ') : (p.sizes || ''),
-      // Colors may be objects {name, hex} or strings
-      Array.isArray(p.colors)
-        ? p.colors.map((c: any) => (typeof c === 'string' ? c : (c?.label || c?.name || c?.hex || String(c)))).join(', ')
-        : (p.colors || ''),
-      Array.isArray(p.tags) ? p.tags.join(', ') : (p.tags || ''),
-      p.isFeatured ? 'Yes' : 'No',
-      p.isTrending ? 'Yes' : 'No',
-      p.isNewArrival ? 'Yes' : 'No',
-      p.isOnSale ? 'Yes' : 'No',
-      p.rating ?? 0,
-      p.reviewCount ?? 0,
-      p.shortDescription || '',
-      p.description || '',
-      Array.isArray(p.images) ? p.images.join(' | ') : (p.images || ''),
-      p.videoUrl || '',
-      p.seoTitle || '',
-      p.seoKeywords || '',
-      p.createdAt || '',
-      p.updatedAt || '',
-    ]);
+    /** Resolve a color entry (string or {name,hex,label} object) to a display name */
+    const resolveColorLabel = (c: any): string => {
+      if (!c) return '';
+      if (typeof c === 'string') return c;
+      return c.label || c.name || c.hex || String(c);
+    };
 
-    // Convert to XLSX worksheet
+    /** Format price as "1000 BDT" for the catalog */
+    const fmtPrice = (amount: number | undefined | null) =>
+      amount != null && amount > 0 ? `${amount} BDT` : '';
+
+    /** Map category name to a rough Google Product Category */
+    const mapGoogleCat = (cat: string): string => {
+      const lower = (cat || '').toLowerCase();
+      if (lower.includes('jewelry') || lower.includes('jewellery') || lower.includes('accessories')) {
+        return 'Apparel & Accessories > Jewelry';
+      }
+      if (lower.includes('cosmetic') || lower.includes('makeup') || lower.includes('beauty')) {
+        return 'Health & Beauty > Beauty > Cosmetics';
+      }
+      return 'Apparel & Accessories > Clothing';
+    };
+
+    /** Map category name to a FB product category */
+    const mapFbCat = (cat: string): string => {
+      const lower = (cat || '').toLowerCase();
+      if (lower.includes('jewelry') || lower.includes('jewellery') || lower.includes('accessories')) {
+        return 'Clothing & Accessories > Jewelry';
+      }
+      if (lower.includes('cosmetic') || lower.includes('makeup') || lower.includes('beauty')) {
+        return 'Health & Beauty';
+      }
+      return 'Clothing & Accessories > Clothing';
+    };
+
+    const rows: unknown[][] = [];
+
+    toExport.forEach((p: Product) => {
+      const productUrl = `${SITE.domain}/product/${p.slug}`;
+      const coverImage = (p.images || [])[0] || '';
+      const googleCat = mapGoogleCat(p.category);
+      const fbCat = mapFbCat(p.category);
+      const salePrice = p.isOnSale && p.comparePrice ? fmtPrice(p.price) : '';
+      const regularPrice = fmtPrice(p.price);
+      // Tags — first two used in product_tags[0] and product_tags[1]
+      const tags = Array.isArray(p.tags) ? p.tags : [];
+      const sizesStr = Array.isArray(p.sizes) ? p.sizes.join(', ') : (p.sizes || '');
+      const colors = Array.isArray(p.colors) && p.colors.length > 0 ? p.colors : null;
+
+      /** Build one data row for a given color label (or empty string if no variants) */
+      const buildRow = (colorLabel: string): unknown[] => [
+        p.id,                                       // id
+        p.name,                                     // title
+        p.description || p.shortDescription || '',  // description
+        (p.stock ?? 0) > 0 ? 'in stock' : 'out of stock', // availability
+        'new',                                      // condition
+        productUrl,                                 // link
+        coverImage,                                 // image_link
+        BRAND.fullName,                             // brand
+        regularPrice,                               // price
+        googleCat,                                  // google_product_category
+        fbCat,                                      // fb_product_category
+        p.stock ?? 0,                               // quantity_to_sell_on_facebook
+        salePrice,                                  // sale_price
+        '',                                         // sale_price_effective_date
+        p.id,                                       // item_group_id (same for all variants)
+        'female',                                   // gender
+        colorLabel,                                 // color
+        sizesStr,                                   // size
+        'adult',                                    // age_group
+        '',                                         // material
+        '',                                         // pattern
+        '',                                         // shipping
+        '',                                         // shipping_weight
+        '',                                         // offer_disclaimer
+        '',                                         // offer_disclaimer_url
+        (p as any).videoUrl || '',                  // video[0].url
+        '',                                         // video[0].tag[0]
+        '',                                         // gtin
+        tags[0] || '',                              // product_tags[0]
+        tags[1] || '',                              // product_tags[1]
+        '',                                         // style[0]
+        '',                                         // clothing_size_type
+        '',                                         // inseam
+        '',                                         // waist_size
+        '',                                         // chest_size
+        '',                                         // sleeve_length
+        '',                                         // skirt_length
+        '',                                         // bra_band_size
+        '',                                         // bra_cup_size
+        '',                                         // neckline
+        '',                                         // waist_rise
+        '',                                         // pant_fit
+        '',                                         // pant_length_style
+        '',                                         // jean_wash
+        '',                                         // denim_features[0]
+        '',                                         // denim_features[1]
+        '',                                         // pant_leg_style
+        '',                                         // sleeve_length_style
+        '',                                         // sleeve_style
+        '',                                         // waist_style
+        '',                                         // sock_rise
+        '',                                         // sheerness
+        '',                                         // upper_body_strap_configuration
+        '',                                         // collar_style
+        'No',                                       // is_adult_product
+        'No',                                       // is_outfit_set
+        '',                                         // closure
+        '',                                         // occasion[0]
+        '',                                         // fabric_care_instructions[0]
+        '',                                         // fabric_care_instructions[1]
+        '',                                         // size_system
+        'No',                                       // is_costume
+        '',                                         // additional_features[0]
+        '',                                         // additional_features[1]
+        '',                                         // standard_features[0]
+        '',                                         // character
+        '',                                         // theme
+        '',                                         // sport[0]
+        '',                                         // sports_team[0]
+        '',                                         // sports_league[0]
+      ];
+
+      if (colors && colors.length > 0) {
+        // One row per color variant
+        colors.forEach((c: any) => {
+          rows.push(buildRow(resolveColorLabel(c)));
+        });
+      } else {
+        // No color variants — single row with empty color field
+        rows.push(buildRow(''));
+      }
+    });
+
+    // Build worksheet from headers + data rows
     const ws = xlsxUtils.aoa_to_sheet([headers, ...rows]);
     const wb = xlsxUtils.book_new();
     xlsxUtils.book_append_sheet(wb, ws, 'Products');
 
-    // Generate workbook and trigger download
+    // Filename: catalog_products_YYYY-MM-DD HH_MM_SS (matches template naming)
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const datePart = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const timePart = `${pad(now.getHours())}_${pad(now.getMinutes())}_${pad(now.getSeconds())}`;
+    const fileName = `catalog_products_${datePart} ${timePart}.xlsx`;
+
     const wbout = xlsxWrite(wb, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([wbout], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -1005,7 +1130,7 @@ export const AdminProducts: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `products-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    link.download = fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
