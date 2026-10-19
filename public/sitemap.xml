@@ -2,51 +2,63 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://www.shinyshades.store/</loc>
-    <lastmod>2026-09-14</lastmod>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.shinyshades.store/shop</loc>
-    <lastmod>2026-09-14</lastmod>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.shinyshades.store/categories</loc>
-    <lastmod>2026-09-14</lastmod>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.shinyshades.store/about</loc>
-    <lastmod>2026-09-14</lastmod>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://www.shinyshades.store/contact</loc>
-    <lastmod>2026-09-14</lastmod>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://www.shinyshades.store/terms</loc>
-    <lastmod>2026-09-14</lastmod>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://www.shinyshades.store/privacy-policy</loc>
-    <lastmod>2026-09-14</lastmod>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://www.shinyshades.store/return-policy</loc>
-    <lastmod>2026-09-14</lastmod>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://www.shinyshades.store/category/sharara-set-two-piece</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.shinyshades.store/category/ethnic-wear</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.shinyshades.store/category/gown-cotton-wear</loc>
@@ -163,440 +175,104 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.shinyshades.store/product/exclusive-garara-dress-embroidery-sequin-msp1aror-ni66</loc>
-    <lastmod>2026-08-11</lastmod>
+    <loc>https://www.shinyshades.store/category/nightwear</loc>
+    <lastmod>2026-09-21</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/exclusive-cotton-embroidery-garara-dress-shiny-shades</loc>
-    <lastmod>2026-08-11</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/exclusive-garara-dress-cotton-embroidery-msp1emb7-ano9</loc>
-    <lastmod>2026-08-11</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/digital-print-three-piece-china-microstitch-msp1zpel-bhab</loc>
-    <lastmod>2026-08-11</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/arong-cotton-three-piece-skin-print-lace</loc>
-    <lastmod>2026-08-12</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/skin-print-cotton-three-piece-lace-detail-msp4t86w-vzax</loc>
-    <lastmod>2026-08-11</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/cotton-charm-three-piece-lace-detail-msp54g3v-jx0r</loc>
-    <lastmod>2026-08-11</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/georgette-glow-sequence-three-piece-msp5cdml-vi8o</loc>
-    <lastmod>2026-08-11</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/digital-print-gown-borka-mt0h5ocm-u37e</loc>
-    <lastmod>2026-08-19</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/kaptan-abaya-with-hijab-mt0hm4v5-1iz6</loc>
-    <lastmod>2026-08-19</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/cotton-grace-lace-work-three-piece-msp5i4x2-1syy</loc>
-    <lastmod>2026-08-11</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/embroidered-radiance-sequence-three-piece-msp5ovgn-mq95</loc>
-    <lastmod>2026-08-11</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/ivory-bloom-white-farsy-dress-mspz98hp-b1f9</loc>
-    <lastmod>2026-08-12</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/printed-elegance-china-microstitch-three-piece-mspzgwa5-en3p</loc>
-    <lastmod>2026-08-12</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/afghani-borka-mt0i1tme-l8z3</loc>
-    <lastmod>2026-08-19</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/luxe-print-china-microstitch-three-piece-mspzl0dq-sll9</loc>
-    <lastmod>2026-08-12</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/cotton-petal-arong-cotton-three-piece-mspzqb0n-nmou</loc>
-    <lastmod>2026-08-12</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/georgette-glow-sequin-three-piece-mspzxpm6-tddx</loc>
-    <lastmod>2026-08-12</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/chunri-charm-soft-cotton-three-piece-msq01z5i-4cfd</loc>
-    <lastmod>2026-08-12</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/stone-charm-georgette-saree-with-blouse-piece-mt337o0b-4ds4</loc>
-    <lastmod>2026-08-21</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/midnight-sequin-georgette-three-piece-msq09b21-06ga</loc>
-    <lastmod>2026-08-12</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/royal-purple-samusilk-gown-three-piece</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/arunanjali-soft-silk-katan-saree-mt36hpt2-kalb</loc>
-    <lastmod>2026-08-21</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/aghanoor-grace-premium-embroidery-three-piece-msud0zll-t423</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/tassel-muse-cotton-co-ord-set</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/golap-bloom-cotton-gown-three-piece</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/jayma-digital-print-borka</loc>
-    <lastmod>2026-08-19</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/georgette-saree-with-blouse-piece-mt1u3hq9-t5tr</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/luna-print-china-microstitch-three-piece</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/ivory-muse-georgette-western-three-piece</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/chunri-glaze-soft-cotton-three-piece</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/velvet-bloom-soft-georgette-three-piece</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/lace-bloom-digital-print-three-piece</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/floral-muse-micro-stitch-embroidery-three-piece</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/eid-glow-digital-print-silk-three-piece-msue6ihu-rcrd</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/harmony-digital-print-silk-three-piece-msuea32h-g501</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/grace-embroidery-sequin-cotton-three-piece-msued7tg-kzop</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/stone-work-georgette-saree-with-matching-blouse-piece-mt334ns1-lohr</loc>
-    <lastmod>2026-08-21</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/aura-sequin-embroidery-party-wear-four-piece-msuekd4g-vlw2</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/modern-bloom-digital-printed-three-piece-msuenv6m-95b5</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/kalo-kanti-golden-zari-embroidery-two-piece</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/linen-flow-solid-color-plazo</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/cotton-ease-t-shirt-pant-set</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/half-sleeve-casual-wear</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/trendy-ladies-georgette-tops-skirt-set-shiny-shades-msufsm72-765w</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/linen-charm-skirt-cotton-t-shirt-set</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/cotton-lace-touch-long-t-shirt-pant-set</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/linen-elegance-china-linen-skirt-msugdaog-mvr5</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/georgette-grace-cotton-t-shirt-skirt-set-msugnm5q-3ghq</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/linen-flow-stylish-linen-plazo-msugu5t7-aw25</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/georgette-muse-cotton-t-shirt-skirt-set-msx0ft69-tldn</loc>
-    <lastmod>2026-08-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/t-shirt-skirt-set-msx0i7t4-95n9</loc>
-    <lastmod>2026-08-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/soft-net-charm-cotton-t-shirt-skirt-set-msx0n7ty-8rn1</loc>
-    <lastmod>2026-08-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/cotton-drop-shoulder-t-shirt</loc>
-    <lastmod>2026-08-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/trendy-ladies-cherry-georgette-tops-skirt-set-msx0qzfy-ff22</loc>
-    <lastmod>2026-08-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/stone-charm-georgette-saree-with-blouse-piece</loc>
-    <lastmod>2026-08-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.shinyshades.store/product/premium-cotton-printed-three-piece</loc>
-    <lastmod>2026-08-18</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
+    <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.shinyshades.store/product/dubai-cherry-embroidered-borka-with-hijab</loc>
-    <lastmod>2026-08-19</lastmod>
+    <loc>https://www.shinyshades.store/product/sheer-mesh-skirt-set-mubls9l9-scux</loc>
+    <lastmod>2026-09-21</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.shinyshades.store/product/persian-abaya-set-with-inner-hijab-dmc-stone-mt0g9web-x7fd</loc>
-    <lastmod>2026-08-19</lastmod>
+    <loc>https://www.shinyshades.store/product/scarlet-ruffle-chemise-mublzv28-7cxk</loc>
+    <lastmod>2026-09-21</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.shinyshades.store/product/embellished-stone-borka</loc>
-    <lastmod>2026-08-19</lastmod>
+    <loc>https://www.shinyshades.store/product/lace-dream-robe-set-muivvsy2-eojh</loc>
+    <lastmod>2026-09-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.shinyshades.store/product/chanderi-digital-print-silk-saree-mt1u921k-z3py</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.shinyshades.store/product/heart-lace-babydoll-mumnq9js-j6q5</loc>
+    <lastmod>2026-09-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.shinyshades.store/product/japanese-soft-silk-saree-with-blouse-piece-mt1udyjb-fak0</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.shinyshades.store/product/thai-cotton-set-muvrbih0-61kf</loc>
+    <lastmod>2026-10-05</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.shinyshades.store/product/viral-royal-spark-saree-with-sequin-embroidery-blouse</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.shinyshades.store/product/navy-heart-gown-mvfm9f34-4wip</loc>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.shinyshades.store/product/half-silk-lace-work-saree-mt1uqt7g-3ybu</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.shinyshades.store/product/heart-slit-gown</loc>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.shinyshades.store/product/hybrid-half-cotton-saree-mt1uurmz-s3y1</loc>
-    <lastmod>2026-08-20</lastmod>
+    <loc>https://www.shinyshades.store/product/rose-bloom-gown</loc>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.shinyshades.store/product/printed-silk-saree-with-blouse-piece-mt33agi0-0kwz</loc>
-    <lastmod>2026-08-21</lastmod>
+    <loc>https://www.shinyshades.store/product/caramel-button-dress-mvfmj221-u02e</loc>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.shinyshades.store/product/resmi-silk-saree-with-blouse-piece-mt33fnxi-m7xz</loc>
-    <lastmod>2026-08-21</lastmod>
+    <loc>https://www.shinyshades.store/product/blush-floral-pajama-set-mvfmld00-zap9</loc>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.shinyshades.store/product/japani-silk-saree</loc>
-    <lastmod>2026-08-21</lastmod>
+    <loc>https://www.shinyshades.store/product/sapphire-slit-gown-mvfmn3e9-pofe</loc>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.shinyshades.store/product/japani-silk-saree-with-matching-blouse-piece-skin-print-mt33mb52-5qo7</loc>
-    <lastmod>2026-08-21</lastmod>
+    <loc>https://www.shinyshades.store/product/chain-mini-dress-mvfmosix-1z00</loc>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.shinyshades.store/product/japani-elegance-skin-print-silk-saree-mt33ob2k-j6pw</loc>
-    <lastmod>2026-08-21</lastmod>
+    <loc>https://www.shinyshades.store/product/ruffle-set-mvfmqxfd-wbum</loc>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.shinyshades.store/product/fendi-silk-sequin-saree</loc>
-    <lastmod>2026-08-21</lastmod>
+    <loc>https://www.shinyshades.store/product/rose-bloom-dress-mvfmsbsx-r9ic</loc>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.shinyshades.store/product/royal-katan-benaroshi-saree-mt36pqv1-i4pl</loc>
-    <lastmod>2026-08-21</lastmod>
+    <loc>https://www.shinyshades.store/product/floral-ruffle-set-mvfmuatb-77lx</loc>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.shinyshades.store/product/katan-benaroshi-saree-mt36s8n0-vi54</loc>
-    <lastmod>2026-08-21</lastmod>
+    <loc>https://www.shinyshades.store/product/rose-dress-mvfmwcrt-ssac</loc>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -607,8 +283,8 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.shinyshades.store/product/black-floral-print-three-piece-with-beige-trouser-dupatta</loc>
-    <lastmod>2026-09-05</lastmod>
+    <loc>https://www.shinyshades.store/product/luna-slip-dress</loc>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -745,8 +421,20 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.shinyshades.store/product/luna-slip-dress-mtpyv8bs-epa0</loc>
-    <lastmod>2026-09-06</lastmod>
+    <loc>https://www.shinyshades.store/product/mauve-bloom-set</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.shinyshades.store/product/wine-bloom-gharara-mu3zkvvg-gi3j</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.shinyshades.store/product/rose-bloom-maxi-mu6v3fcm-pwlb</loc>
+    <lastmod>2026-09-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

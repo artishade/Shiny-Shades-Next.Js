@@ -6,7 +6,7 @@
  * creation and never stored (only its sha256 hash is kept).
  */
 
-import { requireAdmin } from '../_lib/requireAdmin.js';
+import { requireAdmin } from './_lib/requireAdmin.js';
 import crypto from 'crypto';
 
 function hashKey(raw) {
