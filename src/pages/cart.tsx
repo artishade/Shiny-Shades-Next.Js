@@ -11,8 +11,7 @@ import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Tag } from 'lucide-react'
 import { Button, EmptyState, PriceDisplay } from '@/components/ui';
 import { useCartStore, useCouponStore } from '@/store';
 import { SITE } from '@/config/siteConfig';
-import Head from 'next/head';
-import { trackPageView, trackViewContent } from '@/lib/facebookPixel';
+import { trackInitiateCheckout } from '@/lib/facebookPixel';
 
 export const CartPage: React.FC = () => {
   const navigate = useNavigate();
@@ -38,22 +37,7 @@ export const CartPage: React.FC = () => {
     loadCoupons();
   }, [loadCoupons]);
 
-  /* GTM — view_cart */
-React.useEffect(() => {
-  if (items.length === 0) return;
 
-  // Meta Pixel: per-item ViewContent only — the PageView is already fired by
-  // _app's PixelTracker, so calling it here double-counted every /cart visit.
-  items.forEach((item) => {
-    trackViewContent({
-      id: item.product.id,
-      name: item.product.name,
-      price: item.product.price,
-      quantity: item.quantity,
-    });
-  });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
 
   
   React.useEffect(() => {
@@ -377,7 +361,22 @@ React.useEffect(() => {
                   </span>
                 </div>
 
-                <Button fullWidth size="lg" onClick={() => navigate('/checkout')}>
+                <Button
+                  fullWidth
+                  size="lg"
+                  onClick={() => {
+                    trackInitiateCheckout(
+                      items.map((i) => ({
+                        id: i.product.id,
+                        name: i.product.name,
+                        price: i.product.price,
+                        quantity: i.quantity,
+                      })),
+                      orderTotal,
+                    );
+                    navigate('/checkout');
+                  }}
+                >
                   Proceed to Checkout <ArrowRight size={16} />
                 </Button>
 

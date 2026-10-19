@@ -318,6 +318,23 @@ export const CheckoutPage: React.FC = () => {
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponError, setCouponError] = useState('');
+
+  // Track InitiateCheckout on checkout landing
+  const hasTrackedCheckout = useRef(false);
+  useEffect(() => {
+    if (checkoutItems.length > 0 && !hasTrackedCheckout.current) {
+      hasTrackedCheckout.current = true;
+      trackInitiateCheckout(
+        checkoutItems.map((item) => ({
+          id: item.product.id,
+          name: item.product.name,
+          price: item.product.price,
+          quantity: item.quantity,
+        })),
+        total,
+      );
+    }
+  }, [checkoutItems, total]);
   const [cartCouponOverridden, setCartCouponOverridden] = useState(false);
 
   // Review & Order State
@@ -613,6 +630,7 @@ export const CheckoutPage: React.FC = () => {
           quantity: item.quantity,
         })),
         finalTotal,
+        finalNum,
       );
 
       window.dataLayer = window.dataLayer || [];

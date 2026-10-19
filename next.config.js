@@ -33,6 +33,25 @@ const nextConfig = {
         headers: [{ key: 'Cache-Control', value: 'no-store, max-age=0' }],
       },
     ];
+  async rewrites() {
+    return [
+      {
+        source: '/feed/meta-catalog.xml',
+        destination: '/api/feeds/meta-catalog?format=xml',
+      },
+      {
+        source: '/feed/meta-catalog.csv',
+        destination: '/api/feeds/meta-catalog?format=csv',
+      },
+      {
+        source: '/api/feeds/meta-catalog.xml',
+        destination: '/api/feeds/meta-catalog?format=xml',
+      },
+      {
+        source: '/api/feeds/meta-catalog.csv',
+        destination: '/api/feeds/meta-catalog?format=csv',
+      },
+    ];
   },
 };
 
