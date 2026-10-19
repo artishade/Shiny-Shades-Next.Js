@@ -7,6 +7,7 @@ import { getOptimizedImageUrl, getResponsiveSrcSet } from '@/lib/cloudinary';
 import { SITE } from '@/config/siteConfig';
 import type { Product } from '@/types';
 import { resolveColorHex } from '@/lib/colorUtils';
+import { useImageAspectRatio } from '@/hooks/useImageAspectRatio';
 
 interface ProductCardProps {
     product: Product;
@@ -27,17 +28,20 @@ const CARD_SIZES = '(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw';
 
 export const ProductCard: React.FC<ProductCardProps> = React.memo(
     ({ product, priority = false, imageIndex = 0 }) => {
+        // Frame follows the uploaded photo's own ratio (3:4 until it loads).
+        const { aspectRatio, onImageLoad } = useImageAspectRatio();
+
         const imgAt = product.images?.[imageIndex]?.startsWith('http')
             ? product.images[imageIndex]
             : product.images?.[0]?.startsWith('http') ? product.images[0] : null;
         const rawSrc = imgAt;
 
         const optimisedSrc = rawSrc
-            ? getOptimizedImageUrl(rawSrc, { width: 480, crop: 'fill' })
+            ? getOptimizedImageUrl(rawSrc, { width: 480, crop: 'limit' })
             : null;
 
         const srcSet = rawSrc
-            ? getResponsiveSrcSet(rawSrc, { widths: CARD_SRCSET_WIDTHS, crop: 'fill' })
+            ? getResponsiveSrcSet(rawSrc, { widths: CARD_SRCSET_WIDTHS, crop: 'limit' })
             : '';
 
         const imageAlt = `${product.name}${product.category ? ` — ${product.category}` : ''}`;
@@ -80,15 +84,17 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
                     }}
                 >
                     {/* Image container */}
-                    <div className="relative rounded-2xl overflow-hidden aspect-[3/4] mb-3 bg-blush-light/30">
+                    <div
+                        className="relative rounded-2xl overflow-hidden mb-3 bg-blush-light/30 transition-[aspect-ratio] duration-300"
+                        style={{ aspectRatio }}
+                    >
                         {optimisedSrc ? (
                             <img
                                 src={optimisedSrc}
                                 srcSet={srcSet || undefined}
                                 sizes={srcSet ? CARD_SIZES : undefined}
                                 alt={imageAlt}
-                                width={480}
-                                height={640}
+                                onLoad={onImageLoad}
                                 loading={priority ? 'eager' : 'lazy'}
                                 decoding={priority ? 'sync' : 'async'}
                                 fetchPriority={priority ? 'high' : 'low'}

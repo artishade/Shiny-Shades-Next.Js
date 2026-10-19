@@ -7,6 +7,7 @@ import { usePrerenderedContent, type ContentData } from '@/store/contentStore';
 import { getOptimizedImageUrl } from '@/lib/cloudinary';
 import { BRAND } from '@/config/brandingConfig';
 import type { Product } from '@/types';
+import { useImageAspectRatios } from '@/hooks/useImageAspectRatio';
 
 interface FeaturedCollectionProps {
     initialProducts?: Product[];
@@ -21,6 +22,7 @@ export const FeaturedCollection: React.FC<FeaturedCollectionProps> = ({
     const { products, ready } = usePrerenderedProducts(initialProducts);
     const content = usePrerenderedContent(initialContent);
     const navigate = useNavigate();
+    const { aspectRatioFor, trackImageRatio } = useImageAspectRatios();
 
     useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
@@ -67,15 +69,16 @@ export const FeaturedCollection: React.FC<FeaturedCollectionProps> = ({
                                     onClick={() => navigate(`/product/${product.slug}`)}
                                 >
                                     {/* Photo Card */}
-                                    <div className="relative rounded-2xl overflow-hidden aspect-[3/4] bg-blush-light/30">
+                                    <div className="relative rounded-2xl overflow-hidden bg-blush-light/30" style={{ aspectRatio: aspectRatioFor(product.images?.[0]) }}>
                                         {product.images?.[0]?.startsWith('http') ? (
                                             <img
                                                 src={getOptimizedImageUrl(product.images[0], {
                                                     width: 360,
                                                     height: 480,
-                                                    crop: 'fill',
+                                                    crop: 'limit',
                                                 })}
                                                 alt={product.name}
+                                                onLoad={(e) => trackImageRatio(product.images[0], e)}
                                                 loading={idx < 6 ? 'eager' : 'lazy'}
                                                 className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                                             />

@@ -9,11 +9,13 @@ import { useContentStore } from '@/store/contentStore';
 import { useAutoScroll } from './useAutoScroll';
 import { getOptimizedImageUrl } from '@/lib/cloudinary';
 import { BRAND } from '@/config/brandingConfig';
+import { useImageAspectRatios } from '@/hooks/useImageAspectRatio';
 
 export const NewArrivals: React.FC = () => {
     const { products, fetchProducts } = useProductStore();
     const { content } = useContentStore();
     const navigate = useNavigate();
+    const { aspectRatioFor, trackImageRatio } = useImageAspectRatios();
 
     const CARD_WIDTH = 280 + 20;
     const newItems = products.filter((p) => p.isNewArrival);
@@ -103,11 +105,12 @@ export const NewArrivals: React.FC = () => {
                                     onClick={() => navigate(`/product/${product.slug}`)}
                                 >
                                     {/* Photo Card */}
-                                    <div className="relative rounded-2xl overflow-hidden aspect-[3/4] bg-blush-light/30">
+                                    <div className="relative rounded-2xl overflow-hidden bg-blush-light/30" style={{ aspectRatio: aspectRatioFor(product.images?.[0]) }}>
                                         {product.images?.[0]?.startsWith('http') ? (
                                             <img
-                                                src={getOptimizedImageUrl(product.images[0], { width: 360, height: 480, crop: 'fill' })}
+                                                src={getOptimizedImageUrl(product.images[0], { width: 360, height: 480, crop: 'limit' })}
                                                 alt={product.name}
+                                                onLoad={(e) => trackImageRatio(product.images[0], e)}
                                                 loading={idx < 6 ? 'eager' : 'lazy'}
                                                 className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                                             />

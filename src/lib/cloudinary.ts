@@ -58,7 +58,12 @@ export const uploadToCloudinary = async (file: File) => {
  */
 export const getOptimizedImageUrl = (
     url: string | undefined | null,
-    options?: { width?: number; height?: number; crop?: string }
+    /**
+     * `format` defaults to `auto` (WebP/AVIF where supported). Pass `jpg` for
+     * consumers that reject modern formats, e.g. the Meta catalog feed, which
+     * only accepts JPEG or PNG in `image_link`.
+     */
+    options?: { width?: number; height?: number; crop?: string; format?: string }
 ): string => {
     if (!url || typeof url !== 'string') return '';
     if (!url.startsWith('http')) return url;
@@ -67,9 +72,9 @@ export const getOptimizedImageUrl = (
     const idx = url.indexOf(marker);
     if (idx === -1) return url; // Not a Cloudinary delivery URL — return as-is
 
-    const { width, height, crop = 'limit' } = options || {};
+    const { width, height, crop = 'limit', format = 'auto' } = options || {};
 
-    const transformParts = ['f_auto', 'q_auto'];
+    const transformParts = [`f_${format}`, 'q_auto'];
     if (width) transformParts.push(`w_${width}`);
     if (height) transformParts.push(`h_${height}`);
     transformParts.push(`c_${crop}`);

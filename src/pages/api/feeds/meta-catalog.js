@@ -11,6 +11,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { getOptimizedImageUrl } from '@/lib/cloudinary';
 
 const SITE_DOMAIN = process.env.PUBLIC_SITE_URL
   ? process.env.PUBLIC_SITE_URL.replace(/\/$/, '')
@@ -18,6 +19,9 @@ const SITE_DOMAIN = process.env.PUBLIC_SITE_URL
 
 const BRAND_NAME = 'Shiny Shades';
 const CURRENCY = 'BDT';
+
+/** Meta rejects descriptions over 5,000 characters. */
+const MAX_DESCRIPTION_LENGTH = 5000;
 
 function stripHtml(html) {
   if (!html) return '';
@@ -30,6 +34,8 @@ function stripHtml(html) {
 function xmlEscape(str) {
   if (!str) return '';
   return String(str)
+    // Control characters are not legal in XML 1.0 and make the feed unparseable.
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -42,6 +48,30 @@ function csvEscape(val) {
   const str = String(val).replace(/"/g, '""');
   return `"${str}"`;
 }
+
+/** Postgres numerics can arrive as strings; never compare or format those raw. */
+const toNumber = (value) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const formatPrice = (value) => `${toNumber(value).toFixed(2)} ${CURRENCY}`;
+
+/**
+ * Catalog images must be JPEG/PNG, at least 500x500 (1024 recommended) and a
+ * consistent ratio, while uploads here are compressed to WebP and at least one
+ * is only 430px wide. Ask Cloudinary for a 1024x1024 JPEG padded onto white:
+ * that guarantees every dimension, keeps the whole product in frame (pad never
+ * crops) and gives Meta the 1:1 ratio it recommends.
+ */
+const metaImageUrl = (url) =>
+  getOptimizedImageUrl(url, { width: 1024, height: 1024, crop: 'pad', format: 'jpg' });
+
+const usableImages = (product) =>
+  (Array.isArray(product.images) ? product.images : [])
+    .filter((img) => typeof img === 'string' && img.startsWith('http'))
+    .map(metaImageUrl)
+    .filter(Boolean);
 
 function mapCategories(cat) {
   const lower = (cat || '').toLowerCase();
@@ -93,7 +123,11 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: error.message });
   }
 
-  const items = (products || []).filter((p) => p.name && p.price > 0);
+  // id, title, link and image_link are required on every item; one invalid row
+  // can fail the whole feed sync, so publish only complete products.
+  const items = (products || [])
+    .filter((p) => p && p.id && p.name && p.slug && toNumber(p.price) > 0)
+    .filter((p) => usableImages(p).length > 0);
 
   // Set cache headers: 1 hour browser/CDN cache, stale-while-revalidate 24 hours
   res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400');
@@ -126,16 +160,22 @@ export default async function handler(req, res) {
 
     const rows = items.map((p) => {
       const link = `${SITE_DOMAIN}/product/${p.slug}`;
-      const images = Array.isArray(p.images) ? p.images : [];
-      const imageLink = images[0] || '';
+      const images = usableImages(p);
+      const imageLink = images[0];
       const additionalImageLink = images.slice(1, 11).join(',');
-      const desc = stripHtml(p.description || p.short_description || p.name);
-      const inStock = (p.stock ?? 0) > 0;
+      const desc = stripHtml(p.description || p.short_description || p.name).slice(0, MAX_DESCRIPTION_LENGTH);
+      const stock = toNumber(p.stock);
+      const inStock = stock > 0;
       const cats = mapCategories(p.category_name);
 
-      const isOnSale = Boolean(p.is_on_sale && p.compare_price && p.compare_price > p.price);
-      const regularPrice = isOnSale ? `${p.compare_price} ${CURRENCY}` : `${p.price} ${CURRENCY}`;
-      const salePrice = isOnSale ? `${p.price} ${CURRENCY}` : '';
+      const price = toNumber(p.price);
+      const comparePrice = toNumber(p.compare_price);
+      // Coerce both sides: if PostgREST ever returns a numeric column as text,
+      // "900" > "1200" compares lexicographically and marks full-price items
+      // as on sale.
+      const isOnSale = Boolean(p.is_on_sale) && comparePrice > price;
+      const regularPrice = formatPrice(isOnSale ? comparePrice : price);
+      const salePrice = isOnSale ? formatPrice(price) : '';
 
       const colors = Array.isArray(p.colors)
         ? p.colors.map((c) => (typeof c === 'string' ? c : c?.label || c?.name || '')).filter(Boolean).join(', ')
@@ -156,7 +196,7 @@ export default async function handler(req, res) {
         salePrice,
         cats.google,
         cats.fb,
-        p.stock ?? 0,
+        Math.max(0, Math.floor(stock)),
         '',
         'female',
         'adult',
@@ -181,15 +221,21 @@ export default async function handler(req, res) {
 
   for (const p of items) {
     const link = `${SITE_DOMAIN}/product/${p.slug}`;
-    const images = Array.isArray(p.images) ? p.images : [];
-    const imageLink = images[0] || '';
-    const desc = stripHtml(p.description || p.short_description || p.name);
-    const inStock = (p.stock ?? 0) > 0;
+    const images = usableImages(p);
+    const imageLink = images[0];
+    const desc = stripHtml(p.description || p.short_description || p.name).slice(0, MAX_DESCRIPTION_LENGTH);
+    const stock = toNumber(p.stock);
+    const inStock = stock > 0;
     const cats = mapCategories(p.category_name);
 
-    const isOnSale = Boolean(p.is_on_sale && p.compare_price && p.compare_price > p.price);
-    const regularPrice = isOnSale ? `${p.compare_price} ${CURRENCY}` : `${p.price} ${CURRENCY}`;
-    const salePrice = isOnSale ? `${p.price} ${CURRENCY}` : '';
+    const price = toNumber(p.price);
+    const comparePrice = toNumber(p.compare_price);
+    // Coerce both sides: if PostgREST ever returns a numeric column as text,
+    // "900" > "1200" compares lexicographically and marks full-price items
+    // as on sale.
+    const isOnSale = Boolean(p.is_on_sale) && comparePrice > price;
+    const regularPrice = formatPrice(isOnSale ? comparePrice : price);
+    const salePrice = isOnSale ? formatPrice(price) : '';
 
     const colors = Array.isArray(p.colors)
       ? p.colors.map((c) => (typeof c === 'string' ? c : c?.label || c?.name || '')).filter(Boolean).join(', ')
@@ -204,7 +250,8 @@ export default async function handler(req, res) {
     if (imageLink) {
       xml += `      <g:image_link>${xmlEscape(imageLink)}</g:image_link>\n`;
     }
-    for (const addImg of images.slice(1, 10)) {
+    // Meta accepts up to 10 additional images; CSV already sent 10.
+    for (const addImg of images.slice(1, 11)) {
       if (addImg) {
         xml += `      <g:additional_image_link>${xmlEscape(addImg)}</g:additional_image_link>\n`;
       }
